@@ -1,16 +1,232 @@
-// Kayda Intelligence V1.2 canonical relational model.
-// Not connected in V1.2 yet; this is the migration contract for PostgreSQL.
+// Kayda Intelligence V1.3 canonical relational model.
+//
+// V1.3 adds the Intelligence + Learning foundation.
+// PostgreSQL remains the target database; this schema is the migration contract.
 
-generator client { provider = "prisma-client-js" }
-datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+generator client {
+  provider = "prisma-client-js"
+}
 
-model Business { id String @id @default(cuid()); name String; category String; status String; description String?; createdAt DateTime @default(now()); updatedAt DateTime @updatedAt; deals Deal[]; contacts Contact[]; projects Project[] }
-model Contact { id String @id @default(cuid()); name String; organization String; role String; email String?; phone String?; lastContact String; nextAction String; businessId String?; business Business? @relation(fields:[businessId], references:[id]); createdAt DateTime @default(now()); updatedAt DateTime @updatedAt }
-model Deal { id String @id @default(cuid()); name String; businessId String?; business Business? @relation(fields:[businessId], references:[id]); counterparty String; value String; stage String; probability Int; health String; nextAction String; risk String; createdAt DateTime @default(now()); updatedAt DateTime @updatedAt; tasks Task[] }
-model Project { id String @id @default(cuid()); name String; businessId String?; business Business? @relation(fields:[businessId], references:[id]); status String; progress Int; health String; blocker String; createdAt DateTime @default(now()); updatedAt DateTime @updatedAt; tasks Task[] }
-model Task { id String @id @default(cuid()); title String; status String; priority String; due String; dealId String?; deal Deal? @relation(fields:[dealId], references:[id]); projectId String?; project Project? @relation(fields:[projectId], references:[id]); createdAt DateTime @default(now()); updatedAt DateTime @updatedAt }
-model Activity { id String @id @default(cuid()); title String; detail String; time String; type String; createdAt DateTime @default(now()) }
-model Document { id String @id @default(cuid()); name String; mimeType String?; storageKey String?; extractedText String?; createdAt DateTime @default(now()); updatedAt DateTime @updatedAt }
-model Communication { id String @id @default(cuid()); channel String; subject String?; body String; direction String; contactId String?; createdAt DateTime @default(now()) }
-model Risk { id String @id @default(cuid()); title String; description String; severity String; status String; dealId String?; createdAt DateTime @default(now()); updatedAt DateTime @updatedAt }
-model Commitment { id String @id @default(cuid()); title String; owner String; dueAt DateTime?; status String; source String?; createdAt DateTime @default(now()); updatedAt DateTime @updatedAt }
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Business {
+  id           String                 @id @default(cuid())
+  name         String
+  category     String
+  status       String
+  description  String?
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  deals        Deal[]
+  contacts     Contact[]
+  projects     Project[]
+  signals      IntelligenceSignal[]
+}
+
+model Contact {
+  id           String    @id @default(cuid())
+  name         String
+  organization String
+  role         String
+  email        String?
+  phone        String?
+  lastContact  String
+  nextAction   String
+  businessId   String?
+  business     Business? @relation(fields: [businessId], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Deal {
+  id           String               @id @default(cuid())
+  name         String
+  businessId   String?
+  business     Business?           @relation(fields: [businessId], references: [id])
+  counterparty String
+  value        String
+  stage        String
+  probability  Int
+  health       String
+  nextAction   String
+  risk         String
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  tasks        Task[]
+  signals      IntelligenceSignal[]
+}
+
+model Project {
+  id           String               @id @default(cuid())
+  name         String
+  businessId   String?
+  business     Business?           @relation(fields: [businessId], references: [id])
+  status       String
+  progress     Int
+  health       String
+  blocker      String
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  tasks        Task[]
+  signals      IntelligenceSignal[]
+}
+
+model Task {
+  id           String    @id @default(cuid())
+  title        String
+  status       String
+  priority     String
+  due          String
+  dealId       String?
+  deal         Deal?     @relation(fields: [dealId], references: [id])
+  projectId    String?
+  project      Project?  @relation(fields: [projectId], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Activity {
+  id           String   @id @default(cuid())
+  title        String
+  detail       String
+  time         String
+  type         String
+  createdAt    DateTime @default(now())
+}
+
+model Document {
+  id           String   @id @default(cuid())
+  name         String
+  mimeType     String?
+  storageKey   String?
+  extractedText String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Communication {
+  id           String   @id @default(cuid())
+  channel      String
+  subject      String?
+  body         String
+  direction    String
+  contactId    String?
+  createdAt    DateTime @default(now())
+}
+
+model Risk {
+  id           String   @id @default(cuid())
+  title        String
+  description  String
+  severity     String
+  status       String
+  dealId       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Commitment {
+  id           String   @id @default(cuid())
+  title        String
+  owner        String
+  dueAt        DateTime?
+  status       String
+  source       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model IntelligenceSource {
+  id           String                @id @default(cuid())
+  name         String
+  sourceType   String
+  url          String?
+  publisher    String?
+  credibility  Int                   @default(50)
+  active       Boolean               @default(true)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  signals      IntelligenceSignal[]
+}
+
+model IntelligenceSignal {
+  id                String                 @id @default(cuid())
+  title             String
+  summary           String
+  signalType        String
+  importance        String
+  relevanceScore    Int                    @default(0)
+  confidenceScore   Int                    @default(0)
+  status            String                 @default("New")
+  publishedAt       DateTime?
+  detectedAt        DateTime               @default(now())
+  sourceId          String?
+  source            IntelligenceSource?    @relation(fields: [sourceId], references: [id])
+  businessId        String?
+  business          Business?              @relation(fields: [businessId], references: [id])
+  dealId            String?
+  deal              Deal?                 @relation(fields: [dealId], references: [id])
+  projectId         String?
+  project           Project?               @relation(fields: [projectId], references: [id])
+  whyItMatters      String?
+  recommendedAction String?
+  evidenceUrl       String?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  learningLinks     SignalLearningTopic[]
+
+  @@index([signalType])
+  @@index([importance])
+  @@index([status])
+  @@index([businessId])
+  @@index([dealId])
+  @@index([projectId])
+  @@index([detectedAt])
+}
+
+model LearningTopic {
+  id              String                 @id @default(cuid())
+  name            String                 @unique
+  description     String?
+  category        String
+  priority        String                 @default("Normal")
+  relevanceScore  Int                    @default(0)
+  status          String                 @default("Recommended")
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  signalLinks     SignalLearningTopic[]
+  resources       LearningResource[]
+}
+
+model SignalLearningTopic {
+  signalId        String
+  learningTopicId String
+  reason          String?
+  createdAt       DateTime        @default(now())
+
+  signal          IntelligenceSignal @relation(fields: [signalId], references: [id], onDelete: Cascade)
+  learningTopic   LearningTopic      @relation(fields: [learningTopicId], references: [id], onDelete: Cascade)
+
+  @@id([signalId, learningTopicId])
+}
+
+model LearningResource {
+  id           String        @id @default(cuid())
+  title        String
+  provider     String?
+  resourceType String
+  url          String?
+  difficulty   String?
+  estimatedMins Int?
+  topicId      String
+  topic        LearningTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([topicId])
+}
