@@ -14,6 +14,7 @@ export const intelligenceSources: IntelligenceSource[] = [
     publisher: 'Zambia Sugar',
     credibility: 90,
     active: true,
+    websiteUrl: 'https://www.zamsugar.com/',
   },
   {
     id: 'source-broad-market',

@@ -46,3 +46,31 @@
   .intelligence-card-top{gap:10px}
   .learning-grid{grid-template-columns:1fr}
 }
+
+
+/* V1.3 INTELLIGENCE INGESTION */
+
+.source-monitor{margin-top:16px;overflow:hidden}
+.source-grid{display:grid;grid-template-columns:repeat(3,1fr)}
+.source-row{display:flex;align-items:center;gap:10px;padding:15px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.source-row:last-child{border-right:0}
+.source-status{width:8px;flex:none}
+.source-dot{display:block;width:7px;height:7px;border-radius:50%;background:#aaa}
+.source-dot.active{background:#64866b}
+.source-row>div:nth-child(2){flex:1;min-width:0}
+.source-row strong,.source-row span{display:block}
+.source-row strong{font-size:10px}
+.source-row>div:nth-child(2) span{font-size:8px;color:var(--muted);margin-top:3px}
+.source-footer{display:flex;justify-content:space-between;align-items:center;padding:12px 15px;background:#f1efe9}
+.source-footer span{font:8px 'IBM Plex Mono';letter-spacing:.1em;color:#858983}
+.source-footer strong{font-size:9px;color:#626761}
+
+@media(max-width:1050px){
+  .source-grid{grid-template-columns:1fr}
+  .source-row{border-right:0}
+}
+
+@media(max-width:780px){
+  .source-footer{display:block}
+  .source-footer strong{display:block;margin-top:5px;line-height:1.5}
+}

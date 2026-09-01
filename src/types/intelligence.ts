@@ -63,6 +63,17 @@ export interface IntelligenceSource {
   publisher: string;
   credibility: number;
   active: boolean;
+  feedUrl?: string;
+  websiteUrl?: string;
+}
+
+
+export interface IntelligenceFeed extends IntelligenceSource {
+  url: string;
+  feedUrl?: string;
+  feedType: 'RSS' | 'Atom' | 'API' | 'Manual';
+  sourceId: string;
+  status: 'Active' | 'Paused' | 'Error';
 }
 
 export interface LearningTopic {
@@ -84,6 +95,7 @@ export interface LearningResource {
   estimatedMins: number;
   topicId: string;
 }
+
 
 export interface IntelligenceSignal {
   id: string;
@@ -108,4 +120,45 @@ export interface SignalLearningLink {
   signalId: string;
   learningTopicId: string;
   reason: string;
+}
+
+
+export type IntelligenceFeedType =
+  | 'RSS'
+  | 'API'
+  | 'Web'
+  | 'Manual';
+
+export type IntelligenceIngestionStatus =
+  | 'Active'
+  | 'Paused'
+  | 'Error';
+
+
+
+export interface IntelligenceArticle {
+  id: string;
+  externalId: string;
+  title: string;
+  summary: string;
+  url: string;
+  publisher: string;
+  publishedAt: string;
+  discoveredAt: string;
+  sourceId?: string;
+  feedId?: string;
+  topics: string[];
+  processed: boolean;
+}
+
+export interface IntelligenceIngestionRun {
+  id: string;
+  startedAt: string;
+  completedAt?: string;
+  status: 'Running' | 'Completed' | 'Failed';
+  feedsChecked: number;
+  articlesDiscovered: number;
+  articlesAdded: number;
+  signalsGenerated: number;
+  errorMessage?: string;
 }

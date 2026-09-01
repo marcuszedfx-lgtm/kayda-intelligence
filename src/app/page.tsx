@@ -15,6 +15,7 @@ import {
   learningTopics,
   learningResources,
 } from '@/lib/intelligence/demo-intelligence';
+import { intelligenceFeeds } from '@/lib/intelligence/feeds';
 
 const nav = [
   ['Command Center', LayoutDashboard], ['Today', CalendarDays], ['Inbox', MessageSquareText],
@@ -161,6 +162,37 @@ export default function Home() {
               ))}
             </div>
           </section>
+
+          <section className="panel source-monitor">
+            <div className="panel-head">
+              <h2>Intelligence source monitor</h2>
+              <button>{intelligenceFeeds.filter(f=>f.status==='Active').length} active <ArrowUpRight size={13}/></button>
+            </div>
+            <div className="source-grid">
+              {intelligenceFeeds.map(feed => {
+                const source = intelligenceSources.find(s=>s.id===feed.sourceId);
+                return (
+                  <div className="source-row" key={feed.id}>
+                    <div className="source-status">
+                      <span className={feed.status === 'Active' ? 'source-dot active' : 'source-dot'} />
+                    </div>
+                    <div>
+                      <strong>{feed.name}</strong>
+                      <span>{source?.publisher || 'Unassigned source'} · {feed.feedType}</span>
+                    </div>
+                    <Badge tone={feed.status === 'Active' ? 'good' : 'watch'}>
+                      {feed.status}
+                    </Badge>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="source-footer">
+              <span>INGESTION STATUS</span>
+              <strong>Connector framework ready · Live providers pending</strong>
+            </div>
+          </section>
+
         </> : showLearning ? <>
           <section className="record-hero">
             <div>
