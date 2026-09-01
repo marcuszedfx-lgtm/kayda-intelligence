@@ -224,3 +224,53 @@ export interface ScoredIntelligenceArticle {
   sourceName: string;
   classification: IntelligenceClassification;
 }
+
+// ==================================================
+// V1.5 — OPERATIONAL DECISION INTELLIGENCE
+// ==================================================
+
+export type DecisionType =
+  | "Risk"
+  | "Opportunity"
+  | "Operational"
+  | "Market"
+  | "Learning"
+  | "Monitor";
+
+export type ActionHorizon =
+  | "Now"
+  | "Today"
+  | "This Week"
+  | "Monitor";
+
+export type DecisionPriority =
+  | "Critical"
+  | "High"
+  | "Medium"
+  | "Low";
+
+export interface OperationalDecision {
+  id: string;
+  articleId: string;
+  title: string;
+  decisionType: DecisionType;
+  priority: DecisionPriority;
+  actionHorizon: ActionHorizon;
+  relevanceScore: number;
+  impactScore: number;
+  urgencyScore: number;
+  confidenceScore: number;
+  operationalExposure: number;
+  opportunityScore: number;
+  riskScore: number;
+  affectedDomains: string[];
+  whyItMatters: string;
+  recommendedAction: string;
+  decisionSummary: string;
+  createdAt: string;
+}
+
+export interface DecisionQueueItem {
+  decision: OperationalDecision;
+  rank: number;
+}

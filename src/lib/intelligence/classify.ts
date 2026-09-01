@@ -289,7 +289,18 @@ function normalizeText(article: ArticleLike): string {
 }
 
 function countMatches(text: string, terms: string[]): string[] {
-  return terms.filter((term) => text.includes(term.toLowerCase()));
+  return terms.filter((term) => {
+    const escapedTerm = term
+      .toLowerCase()
+      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    const pattern = new RegExp(
+      `(?<![a-z0-9])${escapedTerm}(?![a-z0-9])`,
+      "i",
+    );
+
+    return pattern.test(text);
+  });
 }
 
 function clamp(value: number): number {
