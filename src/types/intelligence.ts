@@ -162,3 +162,65 @@ export interface IntelligenceIngestionRun {
   signalsGenerated: number;
   errorMessage?: string;
 }
+
+
+/* =========================================================
+   KAYDA INTELLIGENCE V1.4
+   CLASSIFICATION + RELEVANCE TYPES
+   ========================================================= */
+
+export type IntelligenceDomain =
+  | 'FX'
+  | 'USDT'
+  | 'Payments'
+  | 'Banking'
+  | 'Trade'
+  | 'Commodities'
+  | 'Sugar'
+  | 'Real Estate'
+  | 'Technology'
+  | 'AI'
+  | 'Regulation'
+  | 'Zambia'
+  | 'Africa'
+  | 'Global'
+  | 'Business'
+  | 'Learning'
+  | 'Other';
+
+export type IntelligenceUrgency =
+  | 'Immediate'
+  | 'High'
+  | 'Normal'
+  | 'Low';
+
+export type IntelligenceImpact =
+  | 'Critical'
+  | 'High'
+  | 'Medium'
+  | 'Low'
+  | 'Informational';
+
+export interface IntelligenceClassification {
+  primaryDomain: IntelligenceDomain;
+  secondaryDomains: IntelligenceDomain[];
+  relevanceScore: number;
+  urgencyScore: number;
+  impactScore: number;
+  confidenceScore: number;
+  urgency: IntelligenceUrgency;
+  impact: IntelligenceImpact;
+  whyItMatters: string;
+  recommendedAction: string;
+  matchedSignals: string[];
+}
+
+export interface ScoredIntelligenceArticle {
+  id: string;
+  title: string;
+  summary: string;
+  url: string;
+  publishedAt: string;
+  sourceName: string;
+  classification: IntelligenceClassification;
+}
