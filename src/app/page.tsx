@@ -9,12 +9,18 @@ import {
 import { getDemoAgentResponse, type AgentResponse } from '@/lib/command-agent';
 import { initialState, loadState, makeId, saveState, type KaydaState } from '@/lib/store';
 import type { Business, Contact, Deal, Project, Task } from '@/types/domain';
+import {
+  intelligenceSignals,
+  intelligenceSources,
+  learningTopics,
+  learningResources,
+} from '@/lib/intelligence/demo-intelligence';
 
 const nav = [
   ['Command Center', LayoutDashboard], ['Today', CalendarDays], ['Inbox', MessageSquareText],
   ['Tasks', Target], ['Deals', BriefcaseBusiness], ['Businesses', Network], ['Contacts', Users],
   ['Projects', Gauge], ['Research', Search], ['Documents', FileText], ['Finance', WalletCards],
-  ['Communications', MessageSquareText], ['AI Workforce', Sparkles], ['Knowledge', Network],
+  ['Communications', MessageSquareText], ['AI Workforce', Sparkles], ['Intelligence', Zap], ['Learning', FileText], ['Knowledge', Network],
 ] as const;
 
 function Badge({ children, tone='neutral' }: { children: React.ReactNode; tone?: string }) {
@@ -93,6 +99,9 @@ export default function Home() {
   }
 
   const showRecords=['Tasks','Deals','Businesses','Contacts','Projects'].includes(active);
+  const showIntelligence = active === 'Intelligence';
+  const showLearning = active === 'Learning';
+
 
   return <main className="shell">
     <aside className={`sidebar ${mobileNav?'mobile-open':''}`}>
@@ -105,7 +114,101 @@ export default function Home() {
     <section className="content">
       <header className="topbar"><div className="mobile-menu"><button onClick={()=>setMobileNav(true)}><Menu size={20}/></button></div><div className="crumb"><span>Workspace</span><ChevronRight size={13}/><strong>{active}</strong></div><div className="top-actions"><label className="global-search"><Search size={15}/><input placeholder="Search anything…" value={query} onChange={e=>setQuery(e.target.value)}/><kbd>⌘ K</kbd></label><button className="icon-btn"><Bell size={17}/><i/></button><button className="operator-mini">DB</button></div></header>
       <div className="page">
-        {showRecords ? <RecordTable active={active} state={state} onDeal={setSelectedDeal} onCreate={()=>setCreateOpen(true)}/> : active==='Today' ? <>
+        {showIntelligence ? <>
+          <section className="record-hero">
+            <div>
+              <span className="eyebrow">BUSINESS INTELLIGENCE</span>
+              <h1>Intelligence</h1>
+              <p>Signals detected across Kayda's commercial, market and operating environment.</p>
+            </div>
+          </section>
+
+          <section className="record-summary intelligence-summary">
+            <div><span className="eyebrow">NEW SIGNALS</span><strong>{intelligenceSignals.filter(s=>s.status==='New').length}</strong></div>
+            <div><span className="eyebrow">HIGH IMPORTANCE</span><strong>{intelligenceSignals.filter(s=>s.importance==='High'||s.importance==='Critical').length}</strong></div>
+            <div><span className="eyebrow">SOURCES</span><strong>{intelligenceSources.filter(s=>s.active).length}</strong></div>
+            <div><span className="eyebrow">AVG RELEVANCE</span><strong>{Math.round(intelligenceSignals.reduce((a,s)=>a+s.relevanceScore,0)/Math.max(intelligenceSignals.length,1))}%</strong></div>
+          </section>
+
+          <section className="panel intelligence-panel">
+            <div className="panel-head">
+              <h2>Priority signals</h2>
+              <button>{intelligenceSignals.length} signals <ArrowUpRight size={13}/></button>
+            </div>
+            <div className="intelligence-list">
+              {intelligenceSignals.map(signal => (
+                <div className="intelligence-card" key={signal.id}>
+                  <div className="intelligence-card-top">
+                    <div>
+                      <span className="eyebrow">{signal.signalType.toUpperCase()} · {signal.status.toUpperCase()}</span>
+                      <h3>{signal.title}</h3>
+                    </div>
+                    <Badge tone={signal.importance === 'High' || signal.importance === 'Critical' ? 'attention' : 'neutral'}>
+                      {signal.importance}
+                    </Badge>
+                  </div>
+                  <p>{signal.summary}</p>
+                  <div className="intelligence-metrics">
+                    <span>RELEVANCE <strong>{signal.relevanceScore}%</strong></span>
+                    <span>CONFIDENCE <strong>{signal.confidenceScore}%</strong></span>
+                    <span>DETECTED <strong>{signal.detectedAt}</strong></span>
+                  </div>
+                  <div className="intelligence-action">
+                    <div><span>WHY IT MATTERS</span><p>{signal.whyItMatters}</p></div>
+                    <div><span>RECOMMENDED ACTION</span><p>{signal.recommendedAction}</p></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </> : showLearning ? <>
+          <section className="record-hero">
+            <div>
+              <span className="eyebrow">KAYDA LEARNING ENGINE</span>
+              <h1>Learning</h1>
+              <p>Build the skills that directly improve the decisions Kayda helps you make.</p>
+            </div>
+          </section>
+
+          <section className="record-summary">
+            <div><span className="eyebrow">RECOMMENDED</span><strong>{learningTopics.filter(t=>t.status==='Recommended').length}</strong></div>
+            <div><span className="eyebrow">IN PROGRESS</span><strong>{learningTopics.filter(t=>t.status==='In Progress').length}</strong></div>
+            <div><span className="eyebrow">RESOURCES</span><strong>{learningResources.length}</strong></div>
+            <div><span className="eyebrow">AVG RELEVANCE</span><strong>{Math.round(learningTopics.reduce((a,t)=>a+t.relevanceScore,0)/Math.max(learningTopics.length,1))}%</strong></div>
+          </section>
+
+          <div className="learning-grid">
+            {learningTopics.map(topic => (
+              <section className="panel learning-card" key={topic.id}>
+                <div className="learning-card-head">
+                  <div>
+                    <span className="eyebrow">{topic.category.toUpperCase()}</span>
+                    <h2>{topic.name}</h2>
+                  </div>
+                  <Badge tone={topic.priority === 'High' || topic.priority === 'Critical' ? 'attention' : 'neutral'}>
+                    {topic.priority}
+                  </Badge>
+                </div>
+                <p>{topic.description}</p>
+                <div className="learning-score">
+                  <span>RELEVANCE</span>
+                  <strong>{topic.relevanceScore}%</strong>
+                </div>
+                <div className="learning-resources">
+                  {learningResources.filter(r=>r.topicId===topic.id).map(resource => (
+                    <div key={resource.id}>
+                      <FileText size={14}/>
+                      <div>
+                        <strong>{resource.title}</strong>
+                        <span>{resource.provider} · {resource.resourceType} · {resource.estimatedMins} min</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        </> : showRecords ? <RecordTable active={active} state={state} onDeal={setSelectedDeal} onCreate={()=>setCreateOpen(true)}/> : active==='Today' ? <>
           <section className="record-hero"><div><span className="eyebrow">DAILY OPERATING QUEUE</span><h1>Today</h1><p>Tasks and commitments that should move before the day closes.</p></div><button className="quiet-action" onClick={()=>{setActive('Tasks');setCreateOpen(true)}}><Plus size={15}/> New task</button></section>
           <section className="panel record-panel"><div className="panel-head"><h2>Open tasks</h2><button onClick={()=>setActive('Tasks')}>Task register <ArrowUpRight size={13}/></button></div>{visibleTasks.filter(t=>t.status!=='Done').map(t=><div className="priority" key={t.id}><div className={`priority-marker ${t.priority}`}>!</div><div className="priority-copy"><strong>{t.title}</strong><span>{t.status} · {t.due}</span></div><Badge tone={t.priority}>{t.priority}</Badge></div>)}</section>
         </> : <>
