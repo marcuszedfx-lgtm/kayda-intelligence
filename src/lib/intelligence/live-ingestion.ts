@@ -1,5 +1,8 @@
 import { intelligenceFeeds } from './feeds';
-import { fetchRssFeed, type RawFeedItem } from './rss';
+import {
+  ingestFromSource,
+  type AdapterArticle,
+} from './source-adapters';
 
 export interface NormalizedLiveArticle {
   id: string;
@@ -11,6 +14,7 @@ export interface NormalizedLiveArticle {
   sourceName: string;
   sourceType: string;
   credibility: number;
+  ingestionMethod: string;
 }
 
 function hash(value: string): string {
@@ -24,8 +28,13 @@ function hash(value: string): string {
   return Math.abs(result).toString(36);
 }
 
-function normalize(item: RawFeedItem): NormalizedLiveArticle {
-  const source = intelligenceFeeds.find((feed) => feed.id === item.sourceId);
+function normalize(
+  item: AdapterArticle,
+  ingestionMethod: string,
+): NormalizedLiveArticle {
+  const source = intelligenceFeeds.find(
+    (feed) => feed.id === item.sourceId,
+  );
 
   const cleanSummary =
     item.description ||
@@ -41,39 +50,67 @@ function normalize(item: RawFeedItem): NormalizedLiveArticle {
     sourceName: source?.name ?? 'Unknown source',
     sourceType: source?.sourceType ?? 'News',
     credibility: source?.credibility ?? 50,
+    ingestionMethod,
   };
 }
 
 export async function ingestLiveIntelligence(): Promise<{
   articles: NormalizedLiveArticle[];
   feedsChecked: number;
+  successfulFeeds: number;
+  emptyFeeds: number;
+  protectedFeeds: number;
+  failedFeeds: number;
   feedErrors: string[];
 }> {
-  const activeFeeds = intelligenceFeeds.filter((feed) => feed.active);
+  const activeFeeds = intelligenceFeeds.filter(
+    (feed) => feed.active && feed.status === 'Active',
+  );
 
-  const results = await Promise.allSettled(
-    activeFeeds.map((feed) => fetchRssFeed(feed)),
+  const results = await Promise.all(
+    activeFeeds.map(async (feed) => ({
+      feed,
+      result: await ingestFromSource(feed),
+    })),
   );
 
   const articles: NormalizedLiveArticle[] = [];
   const feedErrors: string[] = [];
 
-  results.forEach((result) => {
-    if (result.status === 'fulfilled') {
-      articles.push(...result.value.map(normalize));
+  let successfulFeeds = 0;
+  let emptyFeeds = 0;
+  let protectedFeeds = 0;
+  let failedFeeds = 0;
+
+  for (const { result } of results) {
+    if (result.status === 'success') {
+      successfulFeeds += 1;
+    } else if (result.status === 'empty') {
+      emptyFeeds += 1;
+    } else if (result.status === 'protected') {
+      protectedFeeds += 1;
     } else {
-      feedErrors.push(
-        result.reason instanceof Error
-          ? result.reason.message
-          : String(result.reason),
-      );
+      failedFeeds += 1;
     }
-  });
+
+    if (result.error) {
+      feedErrors.push(result.error);
+    }
+
+    articles.push(
+      ...result.articles.map((article) =>
+        normalize(article, result.method),
+      ),
+    );
+  }
 
   const unique = new Map<string, NormalizedLiveArticle>();
 
   for (const article of articles) {
-    const key = article.url || article.title.toLowerCase();
+    const key =
+      article.url ||
+      `${article.sourceId}:${article.title.toLowerCase()}`;
+
     if (!unique.has(key)) {
       unique.set(key, article);
     }
@@ -86,6 +123,10 @@ export async function ingestLiveIntelligence(): Promise<{
         new Date(a.publishedAt).getTime(),
     ),
     feedsChecked: activeFeeds.length,
+    successfulFeeds,
+    emptyFeeds,
+    protectedFeeds,
+    failedFeeds,
     feedErrors,
   };
 }

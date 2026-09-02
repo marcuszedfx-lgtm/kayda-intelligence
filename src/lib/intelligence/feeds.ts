@@ -1,47 +1,39 @@
 import type { IntelligenceFeed } from '@/types/intelligence';
 
-export const intelligenceFeeds: IntelligenceFeed[] = [
-  {
-    id: 'feed-zambia-sugar-news',
-    name: 'Zambia Sugar Intelligence Feed',
-    sourceType: 'News',
-    publisher: 'Zambia Sugar',
-    credibility: 90,
-    active: true,
-    url: 'https://www.zamsugar.com/',
-    feedUrl: 'https://www.zamsugar.com/',
-    feedType: 'RSS',
-    sourceId: 'source-zambia-sugar',
-    status: 'Active',
-  },
-  {
-    id: 'feed-zambia-business-news',
-    name: 'Zambia Business News',
-    sourceType: 'News',
-    publisher: 'Zambian Business Intelligence',
-    credibility: 82,
-    active: true,
-    url: 'https://www.lusakatimes.com/',
-    feedUrl: 'https://www.lusakatimes.com/',
-    feedType: 'RSS',
-    sourceId: 'source-broad-market',
-    status: 'Active',
-  },
-  {
-    id: 'feed-zambia-regulatory',
-    name: 'Zambian Regulatory Intelligence',
-    sourceType: 'News',
-    publisher: 'Zambian Regulatory Intelligence',
-    credibility: 85,
-    active: true,
-    url: 'https://www.zra.org.zm/',
-    feedUrl: 'https://www.zra.org.zm/',
-    feedType: 'RSS',
-    sourceId: 'source-zambian-regulatory',
-    status: 'Active',
-  },
-];
+import {
+  getRegisteredIntelligenceFeeds,
+  getRegisteredSources,
+} from './source-registry';
+
+/**
+ * =========================================================
+ * KAYDA INTELLIGENCE — FEED COMPATIBILITY LAYER
+ * =========================================================
+ *
+ * The application previously stored intelligence feeds
+ * directly in this file.
+ *
+ * Step 5A moves the actual source definitions into the
+ * Source Registry.
+ *
+ * This compatibility layer remains so the existing
+ * ingestion engine continues to work without requiring a
+ * dangerous rewrite of the working live adapter system.
+ *
+ * Future steps will replace this compatibility layer with
+ * database-backed source/company relationships.
+ * =========================================================
+ */
+
+export const intelligenceFeeds: IntelligenceFeed[] =
+  getRegisteredIntelligenceFeeds();
 
 export function getActiveIntelligenceFeeds(): IntelligenceFeed[] {
-  return intelligenceFeeds.filter((feed) => feed.status === 'Active');
+  return intelligenceFeeds.filter(
+    (feed) => feed.active && feed.status === 'Active',
+  );
+}
+
+export function getIntelligenceSources() {
+  return getRegisteredSources();
 }
