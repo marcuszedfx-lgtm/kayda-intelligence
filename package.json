@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "npx tsx src/lib/intelligence/v15-foundation-smoke-test.ts",
+    "test": "npx tsx src/lib/intelligence/source-transport-smoke-test.ts && npx tsx src/lib/intelligence/source-validation-smoke-test.ts && npx tsx src/lib/intelligence/retrieval-smoke-test.ts && npx tsx src/lib/intelligence/engine-smoke-test.ts && npx tsx src/lib/intelligence/search/router-smoke-test.ts && npx tsx src/lib/intelligence/v15-foundation-smoke-test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

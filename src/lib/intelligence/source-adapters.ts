@@ -1,6 +1,7 @@
 import type { IntelligenceFeed } from '@/types/intelligence';
 import https from 'node:https';
 import fs from 'node:fs';
+import path from 'node:path';
 
 export interface AdapterArticle {
   title: string;
@@ -144,10 +145,19 @@ interface ResponseLike {
   status: number;
   statusText: string;
   ok: boolean;
+  contentType: string;
 }
 
 interface TextResponse {
   response: ResponseLike;
+  body: string;
+}
+
+export interface SourceTransportResult {
+  status: number;
+  statusText: string;
+  ok: boolean;
+  contentType: string;
   body: string;
 }
 
@@ -197,6 +207,9 @@ async function fetchWithNativeHttps(
               ok:
                 (response.statusCode ?? 0) >= 200 &&
                 (response.statusCode ?? 0) < 300,
+              contentType:
+                response.headers['content-type'] ??
+                '',
             },
             body: Buffer.concat(chunks).toString('utf8'),
           });
@@ -227,7 +240,11 @@ async function fetchText(
   if (isZra) {
     const caFile =
       process.env.ZRA_CA_BUNDLE ||
-      '/tmp/zra-sectigo-ca-bundle.pem';
+      path.join(
+        process.cwd(),
+        'certs',
+        'zra-sectigo-ca-bundle.pem',
+      );
 
     return await fetchWithNativeHttps(
       url,
@@ -248,10 +265,33 @@ async function fetchText(
   const body = await response.text();
 
   return {
-    response,
+    response: {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok,
+      contentType:
+        response.headers.get('content-type') ??
+        '',
+    },
     body,
   };
 }
+
+export async function fetchSourceForValidation(
+  url: string,
+): Promise<SourceTransportResult> {
+  const result = await fetchText(url);
+
+  return {
+    status: result.response.status,
+    statusText: result.response.statusText,
+    ok: result.response.ok,
+    contentType:
+      result.response.contentType,
+    body: result.body,
+  };
+}
+
 
 async function fetchWordPress(
   feed: IntelligenceFeed,

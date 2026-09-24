@@ -1,135 +1,178 @@
-import type {
-  IntelligenceProvenance,
-  IntelligenceSource,
-} from "@/types/core-intelligence";
-import type {
-  SourceValidation,
-  SourceValidationInput,
-  SourceValidationResult,
-} from "./source-validation";
+import assert from 'node:assert/strict';
+import type { IntelligenceSource } from '@/types/core-intelligence';
+import { createSourceValidation } from './source-validation';
+import {
+  SourceTransportError,
+  type SourceTransport,
+  type SourceTransportResponse,
+} from './source-transport';
 
-class SmokeTestSourceValidation implements SourceValidation {
-  async validate(
-    input: SourceValidationInput,
-  ): Promise<SourceValidationResult> {
-    const validatedSources: IntelligenceSource[] =
-      input.sources.map((source) => ({
-        ...source,
-        validation: {
-          ...source.validation,
-          status: "validated",
-          checkedAt: new Date().toISOString(),
-          identityConfirmed: true,
-          accessibilityConfirmed: true,
-          contentType: "text/html",
-          confidence: 1,
-        },
-        status: "validated",
-      }));
+const now = new Date().toISOString();
 
-    const provenance: IntelligenceProvenance[] =
-      validatedSources.map((source) => ({
-        id: `provenance-${source.id}`,
-        recordType: "source",
-        recordId: source.id,
-        sourceId: source.id,
-        parentProvenanceIds: [],
-        operation: "source_validation",
-        actor: "smoke-test",
-        createdAt: new Date().toISOString(),
-        confidence: 1,
-        attributes: {},
-      }));
-
-    return {
-      sources: validatedSources,
-      provenance,
-      errors: [],
-    };
-  }
-}
-
-async function main() {
-  const source: IntelligenceSource = {
-    id: "source-validation-example",
-    locator: "https://example.com",
-    sourceType: "public_web_source",
-    discoveredBy: "smoke-test",
+function source(id: string): IntelligenceSource {
+  return {
+    id,
+    locator: `https://${id}.example/source`,
+    sourceType: 'public_web_source',
+    discoveredBy: 'smoke-test',
     discoveryProvenanceIds: [],
     validation: {
-      status: "not_checked",
-      checkedAt: new Date().toISOString(),
+      status: 'not_checked',
       identityConfirmed: false,
       accessibilityConfirmed: false,
+      checkedAt: now,
       confidence: 0,
       provenanceIds: [],
     },
     reliability: {
       score: 0,
       basis: [],
-      assessedAt: new Date().toISOString(),
+      assessedAt: now,
       confidence: 0,
       provenanceIds: [],
     },
     access: {
-      method: "web",
-      status: "unknown",
+      method: 'web',
+      status: 'unknown',
       attributes: {},
     },
-    status: "discovered",
+    status: 'discovered',
     attributes: {},
   };
-
-  const input: SourceValidationInput = {
-    sources: [source],
-  };
-
-  const validator = new SmokeTestSourceValidation();
-  const result = await validator.validate(input);
-
-  if (result.errors.length > 0) {
-    throw new Error(
-      `Source validation smoke test returned errors: ${result.errors.join(", ")}`,
-    );
-  }
-
-  if (result.sources.length !== 1) {
-    throw new Error(
-      `Expected 1 validated source, received ${result.sources.length}.`,
-    );
-  }
-
-  const validatedSource = result.sources[0];
-
-  if (validatedSource.validation.status !== "validated") {
-    throw new Error("Source validation status was not updated.");
-  }
-
-  if (!validatedSource.validation.identityConfirmed) {
-    throw new Error("Source identity was not confirmed.");
-  }
-
-  if (!validatedSource.validation.accessibilityConfirmed) {
-    throw new Error("Source accessibility was not confirmed.");
-  }
-
-  if (result.provenance.length !== 1) {
-    throw new Error(
-      `Expected 1 provenance record, received ${result.provenance.length}.`,
-    );
-  }
-
-  console.log("✓ Source validation contract smoke test passed.");
-  console.log(`  Source: ${validatedSource.locator}`);
-  console.log(
-    `  Validation status: ${validatedSource.validation.status}`,
-  );
-  console.log(
-    `  Provenance: ${result.provenance[0].operation}`,
-  );
 }
 
-main().catch((error) => {
+function transportResponse(
+  overrides: Partial<SourceTransportResponse> = {},
+): SourceTransportResponse {
+  return {
+    status: 200,
+    statusText: 'OK',
+    ok: true,
+    contentType: 'text/html; charset=utf-8',
+    finalUrl: 'https://final.example/source',
+    body: '<html>Safe source</html>',
+    bodyBytes: 24,
+    redirectCount: 1,
+    protected: false,
+    ...overrides,
+  };
+}
+
+const transport: SourceTransport = {
+  async fetchSource(locator) {
+    if (locator.includes('protected')) {
+      return transportResponse({
+        status: 429,
+        statusText: 'Too Many Requests',
+        ok: false,
+        body: '',
+        bodyBytes: 0,
+        protected: true,
+        protection: 'rate_limited',
+      });
+    }
+
+    if (locator.includes('http-error')) {
+      return transportResponse({
+        status: 500,
+        statusText: 'Server Error',
+        ok: false,
+      });
+    }
+
+    if (locator.includes('unsafe')) {
+      throw new SourceTransportError(
+        'UNSAFE_URL',
+        'Synthetic unsafe target.',
+      );
+    }
+
+    if (locator.includes('timeout')) {
+      throw new SourceTransportError(
+        'TIMEOUT',
+        'Synthetic timeout.',
+      );
+    }
+
+    return transportResponse();
+  },
+};
+
+async function run() {
+  const result = await createSourceValidation({
+    transport,
+  }).validate({
+    sources: [
+      source('success'),
+      source('protected'),
+      source('unsafe'),
+      source('timeout'),
+      source('http-error'),
+    ],
+  });
+
+  assert.equal(result.sources.length, 5);
+  assert.equal(result.provenance.length, 5);
+  assert.equal(result.errors.length, 4);
+
+  const byId = new Map(
+    result.sources.map((item) => [item.id, item]),
+  );
+
+  const successfulSource = byId.get('success');
+  assert.equal(successfulSource?.status, 'validated');
+  assert.equal(
+    successfulSource?.validation.accessibilityConfirmed,
+    true,
+  );
+  assert.equal(
+    successfulSource?.validation.identityConfirmed,
+    false,
+  );
+  assert.equal(successfulSource?.access.status, 'reachable');
+
+  assert.equal(byId.get('protected')?.status, 'protected');
+  assert.equal(byId.get('unsafe')?.status, 'unsafe_target');
+  assert.equal(byId.get('timeout')?.status, 'timeout');
+  assert.equal(
+    byId.get('http-error')?.status,
+    'unexpected_response',
+  );
+
+  const outcomes = new Map(
+    result.provenance.map((record) => [
+      record.sourceId,
+      record.attributes.validationStatus,
+    ]),
+  );
+
+  assert.equal(outcomes.get('success'), 'validated');
+  assert.equal(outcomes.get('protected'), 'protected');
+  assert.equal(outcomes.get('unsafe'), 'unsafe_target');
+  assert.equal(outcomes.get('timeout'), 'timeout');
+  assert.equal(
+    outcomes.get('http-error'),
+    'unexpected_response',
+  );
+
+  const protectedProvenance = result.provenance.find(
+    (record) => record.sourceId === 'protected',
+  );
+  assert.equal(
+    protectedProvenance?.attributes.protection,
+    'rate_limited',
+  );
+  assert.equal(
+    protectedProvenance?.attributes.responseSizeBytes,
+    0,
+  );
+
+  console.log('✓ V1.5 source validation smoke test passed.');
+  console.log('  Reachability, protected responses, and transport failures are recorded without automatic identity approval.');
+}
+
+run().catch((error) => {
+  console.error('✗ V1.5 source validation smoke test failed.');
   console.error(error);
   process.exit(1);
 });
