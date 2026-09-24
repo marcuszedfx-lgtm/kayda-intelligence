@@ -8,6 +8,7 @@ import type {
 } from '@/types/core-intelligence';
 import { createIntelligenceEngine } from './engine';
 import type { IntelligenceRetrieval } from './retrieval';
+import type { EvidenceAnalysis } from './evidence-analysis';
 import type { ReferenceDiscovery } from './reference-discovery';
 import type { SourceDiscovery } from './source-discovery';
 import type { SourceValidation } from './source-validation';
@@ -154,6 +155,141 @@ const validation: SourceValidation = {
   },
 };
 
+const evidenceAnalysis: EvidenceAnalysis = {
+  async analyze(input) {
+    assert.equal(input.objective.id, objective.id);
+    assert.equal(input.evidence.length, 1);
+    assert.equal(input.evidence[0].id, 'evidence-retrievable');
+
+    return {
+      assessments: [
+        {
+          id: 'assessment-engine-smoke',
+          evidenceId: 'evidence-retrievable',
+          relevanceScore: 0.9,
+          reliabilityScore: 0.9,
+          freshnessScore: 0.9,
+          corroborationScore: 0.5,
+          completenessScore: 0.8,
+          overallConfidence: 0.82,
+          supportingEvidenceIds: ['evidence-retrievable'],
+          conflictingEvidenceIds: [],
+          reasoning: 'Smoke-test evidence is relevant and sufficiently reliable.',
+          provenanceIds: ['provenance-assessment-engine-smoke'],
+        },
+      ],
+      claims: [
+        {
+          id: 'claim-engine-smoke',
+          statement: 'The smoke-test evidence supports the test claim.',
+          predicate: 'supports',
+          evidenceIds: ['evidence-retrievable'],
+          confidence: 0.85,
+          status: 'supported',
+          provenanceIds: ['provenance-claim-engine-smoke'],
+        },
+      ],
+      findings: [
+        {
+          id: 'finding-engine-smoke',
+          statement: 'The smoke-test evidence produces a grounded finding.',
+          objectiveId: objective.id,
+          claimIds: ['claim-engine-smoke'],
+          evidenceIds: ['evidence-retrievable'],
+          referenceIds: [],
+          relevanceScore: 0.9,
+          confidenceScore: 0.85,
+          importanceScore: 0.7,
+          reasoning: 'Finding is directly grounded in the supplied evidence.',
+          limitations: [],
+          provenanceIds: ['provenance-finding-engine-smoke'],
+          createdAt: now,
+        },
+      ],
+      signals: [
+        {
+          id: 'signal-engine-smoke',
+          type: 'opportunity',
+          statement: 'The evidence creates a test intelligence signal.',
+          objectiveId: objective.id,
+          findingIds: ['finding-engine-smoke'],
+          evidenceIds: ['evidence-retrievable'],
+          relevanceScore: 0.8,
+          confidenceScore: 0.8,
+          potentialImpact: 'medium',
+          reasoning: 'Signal is grounded in the smoke-test finding.',
+          recommendedAction: 'Review the evidence.',
+          provenanceIds: ['provenance-signal-engine-smoke'],
+          createdAt: now,
+        },
+      ],
+      provenance: [
+        {
+          id: 'provenance-assessment-engine-smoke',
+          recordType: 'assessment',
+          recordId: 'assessment-engine-smoke',
+          evidenceId: 'evidence-retrievable',
+          parentProvenanceIds: [],
+          operation: 'ai_evidence_analysis',
+          actor: 'ai:smoke-test/smoke-model',
+          createdAt: now,
+          attributes: {
+            providerId: 'smoke-test',
+            modelId: 'smoke-model',
+          },
+        },
+        {
+          id: 'provenance-claim-engine-smoke',
+          recordType: 'claim',
+          recordId: 'claim-engine-smoke',
+          evidenceId: 'evidence-retrievable',
+          parentProvenanceIds: [],
+          operation: 'ai_evidence_analysis',
+          actor: 'ai:smoke-test/smoke-model',
+          createdAt: now,
+          attributes: {
+            providerId: 'smoke-test',
+            modelId: 'smoke-model',
+          },
+        },
+        {
+          id: 'provenance-finding-engine-smoke',
+          recordType: 'finding',
+          recordId: 'finding-engine-smoke',
+          evidenceId: 'evidence-retrievable',
+          parentProvenanceIds: [],
+          operation: 'ai_evidence_analysis',
+          actor: 'ai:smoke-test/smoke-model',
+          createdAt: now,
+          attributes: {
+            providerId: 'smoke-test',
+            modelId: 'smoke-model',
+          },
+        },
+        {
+          id: 'provenance-signal-engine-smoke',
+          recordType: 'signal',
+          recordId: 'signal-engine-smoke',
+          evidenceId: 'evidence-retrievable',
+          parentProvenanceIds: [],
+          operation: 'ai_evidence_analysis',
+          actor: 'ai:smoke-test/smoke-model',
+          createdAt: now,
+          attributes: {
+            providerId: 'smoke-test',
+            modelId: 'smoke-model',
+          },
+        },
+      ],
+      aiResponse: {
+        providerId: 'smoke-test',
+        modelId: 'smoke-model',
+        content: '{}',
+      },
+    };
+  },
+};
+
 const retrieval: IntelligenceRetrieval = {
   async retrieve(input) {
     retrievalInput = input.sources;
@@ -198,6 +334,7 @@ async function run() {
     sourceDiscovery: discovery,
     sourceValidation: validation,
     retrieval,
+    evidenceAnalysis,
     now: () => new Date(now),
   });
 
@@ -211,12 +348,17 @@ async function run() {
   );
   assert.equal(result.sources.length, 2);
   assert.equal(result.evidence.length, 1);
-  assert.equal(result.provenance.length, 5);
+  assert.equal(result.provenance.length, 9);
   assert.equal(result.status, 'completed_with_warnings');
   assert.equal(result.completedAt, now);
-  assert.deepEqual(result.claims, []);
-  assert.deepEqual(result.findings, []);
-  assert.deepEqual(result.signals, []);
+  assert.equal(result.assessments.length, 1);
+  assert.equal(result.claims.length, 1);
+  assert.equal(result.findings.length, 1);
+  assert.equal(result.signals.length, 1);
+
+  assert.deepEqual(result.claims[0].evidenceIds, ['evidence-retrievable']);
+  assert.deepEqual(result.findings[0].claimIds, ['claim-engine-smoke']);
+  assert.deepEqual(result.signals[0].findingIds, ['finding-engine-smoke']);
 
   console.log('✓ V1.5 engine orchestration smoke test passed.');
   console.log('  Only validated and reachable sources reached retrieval; protected sources retained provenance only.');

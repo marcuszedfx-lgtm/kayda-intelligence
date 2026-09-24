@@ -25,6 +25,10 @@ import type {
   SourceValidation,
 } from './source-validation';
 
+import type {
+  EvidenceAnalysis,
+} from './evidence-analysis';
+
 export interface IntelligenceEngineInput {
   objective: IntelligenceObjective;
 }
@@ -61,6 +65,7 @@ export interface IntelligenceEngineDependencies {
   sourceDiscovery: SourceDiscovery;
   sourceValidation: SourceValidation;
   retrieval: IntelligenceRetrieval;
+  evidenceAnalysis: EvidenceAnalysis;
   now?: () => Date;
 }
 
@@ -113,6 +118,12 @@ export function createIntelligenceEngine(
         ),
       });
 
+      const analysis =
+        await dependencies.evidenceAnalysis.analyze({
+          objective: input.objective,
+          evidence: retrieval.evidence,
+        });
+
       const errors = [
         ...referenceDiscovery.errors,
         ...discovery.errors,
@@ -126,17 +137,18 @@ export function createIntelligenceEngine(
         entities: discovery.entities,
         sources: validation.sources,
         evidence: retrieval.evidence,
-        claims: [],
+        claims: analysis.claims,
         relationships: [],
         events: [],
-        assessments: [],
-        findings: [],
-        signals: [],
+        assessments: analysis.assessments,
+        findings: analysis.findings,
+        signals: analysis.signals,
         provenance: [
           ...referenceDiscovery.provenance,
           ...discovery.provenance,
           ...validation.provenance,
           ...retrieval.provenance,
+          ...analysis.provenance,
         ],
         status: errors.length
           ? 'completed_with_warnings'
