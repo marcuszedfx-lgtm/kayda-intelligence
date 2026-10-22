@@ -8,7 +8,8 @@
     "start": "next start -H 127.0.0.1",
     "test": "npx tsx src/test/run-smoke-tests.ts",
     "test:live": "npx tsx src/lib/intelligence/live-adapter-smoke-test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prisma:generate": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
