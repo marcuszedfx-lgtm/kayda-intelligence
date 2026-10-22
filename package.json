@@ -3,25 +3,25 @@
   "version": "0.2.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -H 127.0.0.1",
     "build": "next build",
-    "start": "next start",
-    "test": "npx tsx src/lib/intelligence/source-transport-smoke-test.ts && npx tsx src/lib/intelligence/source-validation-smoke-test.ts && npx tsx src/lib/intelligence/retrieval-smoke-test.ts && npx tsx src/lib/intelligence/engine-smoke-test.ts && npx tsx src/lib/ai/provider-config-smoke-test.ts && npx tsx src/lib/ai/providers/openai-compatible-smoke-test.ts && npx tsx src/lib/intelligence/search/router-smoke-test.ts && npx tsx src/lib/intelligence/v15-foundation-smoke-test.ts",
+    "start": "next start -H 127.0.0.1",
+    "test": "npx tsx src/test/run-smoke-tests.ts",
+    "test:live": "npx tsx src/lib/intelligence/live-adapter-smoke-test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@prisma/client": "^6.19.0",
+    "@prisma/client": "^6.19.3",
     "lucide-react": "0.468.0",
-    "next": "16.3.3",
+    "next": "16.4.2",
     "react": "19.2.0",
-    "react-dom": "19.2.0",
-    "undici": "^8.10.1"
+    "react-dom": "19.2.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.12",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "prisma": "^6.19.0",
+    "prisma": "^6.19.3",
     "typescript": "^5.5.4"
   }
 }

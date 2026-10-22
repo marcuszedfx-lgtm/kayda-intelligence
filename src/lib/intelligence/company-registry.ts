@@ -1,39 +1,3 @@
-/**
- * =========================================================
- * KAYDA INTELLIGENCE V1.5
- * STEP 5B — COMPANY REGISTRY
- * =========================================================
- *
- * The Company Registry is the central definition of external
- * organisations/entities that Kayda may monitor.
- *
- * IMPORTANT ARCHITECTURE:
- *
- * Business
- *   = internal Kayda operating record
- *
- * Company
- *   = external intelligence entity
- *
- * Source
- *   = origin of intelligence
- *
- * Therefore:
- *
- * COMPANY
- *    ↓
- * COMPANY ↔ SOURCE
- *    ↓
- * INTELLIGENCE SIGNAL
- *    ↓
- * BUSINESS / DEAL / PROJECT / RISK
- *
- * The registry is intentionally kept separate from the UI.
- * Future versions can move this data into PostgreSQL without
- * redesigning the intelligence layer.
- * =========================================================
- */
-
 import type {
   CompanyIntelligenceProfile,
   CompanyRole,
@@ -41,243 +5,40 @@ import type {
   IntelligenceCompany,
 } from '@/types/company-intelligence';
 
-/**
- * =========================================================
- * REGISTERED COMPANIES
- * =========================================================
- *
- * These are initial intelligence entities.
- *
- * This is a foundation registry, not yet a complete database
- * of every organisation relevant to Kayda.
- * =========================================================
- */
-
-export const intelligenceCompanyRegistry: IntelligenceCompany[] = [
-  {
-    id: 'company-zambia-sugar',
-    name: 'Zambia Sugar',
-    shortName: 'Zambia Sugar',
-    description:
-      'Major Zambian sugar producer and agricultural manufacturing company.',
-    country: 'Zambia',
-    city: 'Mazabuka',
-    industry: 'Agriculture',
-    sector: 'Sugar & Manufacturing',
-    status: 'Monitoring',
-    websiteUrl: 'https://zamsugar.co.zm/',
-    importance: 'High',
-    roles: [
-      'Supplier',
-      'Market Participant',
-      'Potential Partner',
-    ],
-  },
-
-  {
-    id: 'company-zambia-revenue-authority',
-    name: 'Zambia Revenue Authority',
-    shortName: 'ZRA',
-    description:
-      'Zambian government authority responsible for tax and customs administration.',
-    country: 'Zambia',
-    city: 'Lusaka',
-    industry: 'Government',
-    sector: 'Tax & Customs Regulation',
-    status: 'Monitoring',
-    websiteUrl: 'https://www.zra.org.zm/',
-    importance: 'Critical',
-    roles: [
-      'Regulator',
-      'Government Entity',
-    ],
-  },
-];
+import {
+  loadRegistry,
+  type KaydaRegistry,
+} from './registry-store';
 
 /**
  * =========================================================
- * COMPANY INTELLIGENCE PROFILES
+ * KAYDA INTELLIGENCE — COMPANY REGISTRY (FACADE)
  * =========================================================
  *
- * Monitoring configuration is deliberately separated from
- * company identity.
+ * The registry of monitored companies (with their
+ * intelligence profiles and company↔source relationships)
+ * is USER-OWNED RUNTIME CONFIGURATION loaded from
+ * data/kayda-registry.json (see registry-store.ts).
+ *
+ * This module embeds no company definitions. Kayda starts
+ * with zero monitored companies; a new organisation is
+ * added through the registry file (or the future
+ * database-backed equivalent) — never through a code change.
+ *
+ * Architecture:
+ *
+ * Business   = internal Kayda operating record
+ * Company    = external intelligence entity
+ * Source     = origin of intelligence
+ *
+ * COMPANY ↔ SOURCE → INTELLIGENCE SIGNAL → BUSINESS/DEAL/RISK
  * =========================================================
  */
 
-export const companyIntelligenceProfiles: CompanyIntelligenceProfile[] = [
-  {
-    companyId: 'company-zambia-sugar',
-    monitoringEnabled: true,
-    relevanceScore: 95,
-    riskLevel: 'Medium',
-
-    domains: [
-      'Sugar',
-      'Commodities',
-      'Agriculture',
-      'Manufacturing',
-      'Trade',
-      'Zambia',
-      'Business',
-    ],
-
-    keywords: [
-      'Zambia Sugar',
-      'sugar',
-      'sugar production',
-      'sugar exports',
-      'sugar imports',
-      'VHP sugar',
-      'ICUMSA',
-      'Mazabuka',
-      'commodity',
-      'agriculture',
-    ],
-
-    countries: [
-      'Zambia',
-      'South Africa',
-      'Zimbabwe',
-      'Mozambique',
-      'Botswana',
-      'Namibia',
-      'Malawi',
-    ],
-
-    commodities: [
-      'Sugar',
-      'VHP Sugar',
-      'Brown Sugar',
-      'White Sugar',
-    ],
-  },
-
-  {
-    companyId: 'company-zambia-revenue-authority',
-    monitoringEnabled: true,
-    relevanceScore: 100,
-    riskLevel: 'Critical',
-
-    domains: [
-      'Regulation',
-      'Tax',
-      'Customs',
-      'Trade',
-      'Imports',
-      'Exports',
-      'Compliance',
-      'Zambia',
-      'Business',
-    ],
-
-    keywords: [
-      'ZRA',
-      'Zambia Revenue Authority',
-      'customs',
-      'tax',
-      'VAT',
-      'imports',
-      'exports',
-      'duty',
-      'clearance',
-      'compliance',
-      'tariff',
-      'trade',
-    ],
-
-    countries: [
-      'Zambia',
-    ],
-
-    commodities: [
-      'Sugar',
-      'Commodities',
-      'General Trade',
-    ],
-  },
-];
-
-/**
- * =========================================================
- * COMPANY ↔ SOURCE RELATIONSHIPS
- * =========================================================
- *
- * A company can have multiple intelligence sources.
- *
- * A source can monitor multiple companies.
- *
- * This creates the foundation for a many-to-many model.
- * =========================================================
- */
-
-export const companySourceRelationships: CompanySourceRelationship[] = [
-  {
-    id: 'company-source-zambia-sugar-official',
-    companyId: 'company-zambia-sugar',
-    sourceId: 'source-zambia-sugar',
-    active: true,
-    relevance:
-      'Official company information, products, announcements and operating developments.',
-    keywords: [
-      'Zambia Sugar',
-      'sugar',
-      'products',
-      'production',
-      'agriculture',
-    ],
-  },
-
-  {
-    id: 'company-source-zra-regulatory',
-    companyId: 'company-zambia-revenue-authority',
-    sourceId: 'source-zambian-regulatory',
-    active: true,
-    relevance:
-      'Primary regulatory intelligence covering tax, customs, imports, exports and compliance.',
-    keywords: [
-      'ZRA',
-      'customs',
-      'tax',
-      'imports',
-      'exports',
-      'clearance',
-      'compliance',
-    ],
-  },
-
-  /**
-   * ZRA information may also materially affect companies
-   * involved in trade.
-   *
-   * This relationship deliberately demonstrates why a source
-   * must not be owned exclusively by one company.
-   */
-  {
-    id: 'company-source-zambia-sugar-zra',
-    companyId: 'company-zambia-sugar',
-    sourceId: 'source-zambian-regulatory',
-    active: true,
-    relevance:
-      'Regulatory and customs developments that may affect sugar trade, imports, exports and compliance.',
-    keywords: [
-      'sugar',
-      'imports',
-      'exports',
-      'customs',
-      'trade',
-      'duty',
-    ],
-  },
-];
-
-/**
- * =========================================================
- * REGISTRY HELPERS
- * =========================================================
- */
-
-export function getRegisteredCompanies(): IntelligenceCompany[] {
-  return intelligenceCompanyRegistry.filter(
+export function getRegisteredCompanies(
+  registry: KaydaRegistry = loadRegistry().registry,
+): IntelligenceCompany[] {
+  return registry.companies.filter(
     (company) =>
       company.status !== 'Archived' &&
       company.status !== 'Inactive',
@@ -286,22 +47,24 @@ export function getRegisteredCompanies(): IntelligenceCompany[] {
 
 export function getRegisteredCompanyById(
   companyId: string,
+  registry: KaydaRegistry = loadRegistry().registry,
 ): IntelligenceCompany | undefined {
-  return intelligenceCompanyRegistry.find(
+  return registry.companies.find(
     (company) => company.id === companyId,
   );
 }
 
 export function searchRegisteredCompanies(
   query: string,
+  registry: KaydaRegistry = loadRegistry().registry,
 ): IntelligenceCompany[] {
   const normalizedQuery = query.trim().toLowerCase();
 
   if (!normalizedQuery) {
-    return getRegisteredCompanies();
+    return getRegisteredCompanies(registry);
   }
 
-  return getRegisteredCompanies().filter((company) => {
+  return getRegisteredCompanies(registry).filter((company) => {
     const searchableText = [
       company.id,
       company.name,
@@ -326,16 +89,18 @@ export function searchRegisteredCompanies(
 
 export function getCompanyIntelligenceProfile(
   companyId: string,
+  registry: KaydaRegistry = loadRegistry().registry,
 ): CompanyIntelligenceProfile | undefined {
-  return companyIntelligenceProfiles.find(
+  return registry.companyProfiles.find(
     (profile) => profile.companyId === companyId,
   );
 }
 
 export function getCompanySourceRelationships(
   companyId: string,
+  registry: KaydaRegistry = loadRegistry().registry,
 ): CompanySourceRelationship[] {
-  return companySourceRelationships.filter(
+  return registry.companySourceRelationships.filter(
     (relationship) =>
       relationship.companyId === companyId &&
       relationship.active,
@@ -344,9 +109,10 @@ export function getCompanySourceRelationships(
 
 export function getCompaniesForSource(
   sourceId: string,
+  registry: KaydaRegistry = loadRegistry().registry,
 ): IntelligenceCompany[] {
   const companyIds = new Set(
-    companySourceRelationships
+    registry.companySourceRelationships
       .filter(
         (relationship) =>
           relationship.sourceId === sourceId &&
@@ -355,22 +121,23 @@ export function getCompaniesForSource(
       .map((relationship) => relationship.companyId),
   );
 
-  return getRegisteredCompanies().filter((company) =>
+  return getRegisteredCompanies(registry).filter((company) =>
     companyIds.has(company.id),
   );
 }
 
 export function getCompaniesByDomain(
   domain: string,
+  registry: KaydaRegistry = loadRegistry().registry,
 ): IntelligenceCompany[] {
   const normalizedDomain = domain.trim().toLowerCase();
 
   if (!normalizedDomain) {
-    return getRegisteredCompanies();
+    return getRegisteredCompanies(registry);
   }
 
   const matchingCompanyIds = new Set(
-    companyIntelligenceProfiles
+    registry.companyProfiles
       .filter((profile) =>
         profile.domains.some(
           (item) =>
@@ -380,22 +147,28 @@ export function getCompaniesByDomain(
       .map((profile) => profile.companyId),
   );
 
-  return getRegisteredCompanies().filter((company) =>
+  return getRegisteredCompanies(registry).filter((company) =>
     matchingCompanyIds.has(company.id),
   );
 }
 
 export function getCompaniesByRole(
   role: CompanyRole,
+  registry: KaydaRegistry = loadRegistry().registry,
 ): IntelligenceCompany[] {
-  return getRegisteredCompanies().filter((company) =>
+  return getRegisteredCompanies(registry).filter((company) =>
     company.roles.includes(role),
   );
 }
 
-export function getMonitoredCompanies(): IntelligenceCompany[] {
-  return getRegisteredCompanies().filter((company) => {
-    const profile = getCompanyIntelligenceProfile(company.id);
+export function getMonitoredCompanies(
+  registry: KaydaRegistry = loadRegistry().registry,
+): IntelligenceCompany[] {
+  return getRegisteredCompanies(registry).filter((company) => {
+    const profile = getCompanyIntelligenceProfile(
+      company.id,
+      registry,
+    );
 
     return profile?.monitoringEnabled === true;
   });

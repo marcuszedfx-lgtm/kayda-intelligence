@@ -4,36 +4,30 @@ import type {
   IntelligenceSourceType,
 } from '@/types/intelligence';
 
+import {
+  loadRegistry,
+  type KaydaRegistry,
+} from './registry-store';
+
 /**
  * =========================================================
- * KAYDA INTELLIGENCE — SOURCE REGISTRY
+ * KAYDA INTELLIGENCE — SOURCE REGISTRY (FACADE)
  * =========================================================
  *
- * This registry is the central definition of external
- * intelligence sources used by Kayda Intelligence.
+ * The registry of intelligence sources is USER-OWNED
+ * RUNTIME CONFIGURATION loaded from data/kayda-registry.json
+ * (see registry-store.ts). This module no longer embeds any
+ * source definitions: Kayda starts with zero sources, and a
+ * new source is added by editing the registry file (or the
+ * future database-backed equivalent) — never by editing
+ * source code.
  *
- * IMPORTANT:
+ * A source is NOT the same thing as a company:
  *
- * A source is NOT the same thing as a company.
- *
- * A company may eventually have:
- *
- * - official website
- * - newsroom
- * - investor relations page
- * - RSS feed
- * - WordPress API
- * - government/regulatory records
- * - industry publications
- * - market sources
- * - research sources
- *
- * Step 5A establishes a clean registry so that future
- * company onboarding does not require scattering source
- * definitions throughout the application.
- *
- * Later steps will make this registry database-driven and
- * connect companies to multiple sources automatically.
+ * - A company is an external organisation Kayda monitors.
+ * - A source is an origin of intelligence (site, feed, API).
+ * - One source can inform many companies; one company can
+ *   rely on many sources.
  * =========================================================
  */
 
@@ -62,9 +56,6 @@ export interface RegisteredIntelligenceSource {
 
   /**
    * Optional descriptive tags.
-   *
-   * These will become important when automatic source
-   * discovery and company intelligence profiles are added.
    */
   tags: string[];
 
@@ -76,122 +67,40 @@ export interface RegisteredIntelligenceSource {
 
 /**
  * =========================================================
- * REGISTERED SOURCES
- * =========================================================
- */
-
-export const intelligenceSourceRegistry: RegisteredIntelligenceSource[] = [
-  {
-    id: 'source-zambia-sugar',
-    name: 'Zambia Sugar Intelligence',
-    sourceType: 'News',
-    publisher: 'Zambia Sugar',
-    credibility: 90,
-    active: true,
-    websiteUrl: 'https://zamsugar.co.zm/',
-    feedType: 'Manual',
-    tags: [
-      'zambia-sugar',
-      'sugar',
-      'agriculture',
-      'commodity',
-      'manufacturing',
-      'zambia',
-    ],
-    domains: [
-      'Sugar',
-      'Commodities',
-      'Trade',
-      'Zambia',
-      'Business',
-    ],
-  },
-
-  {
-    id: 'source-lusaka-times',
-    name: 'Lusaka Times',
-    sourceType: 'News',
-    publisher: 'Lusaka Times',
-    credibility: 82,
-    active: true,
-    websiteUrl: 'https://www.lusakatimes.com/',
-    feedType: 'Manual',
-    tags: [
-      'zambia',
-      'lusaka',
-      'business',
-      'economy',
-      'politics',
-      'markets',
-      'news',
-    ],
-    domains: [
-      'Zambia',
-      'Business',
-      'Market',
-      'Regulation',
-      'Trade',
-    ],
-  },
-
-  {
-    id: 'source-zambian-regulatory',
-    name: 'Zambian Regulatory Intelligence',
-    sourceType: 'Regulator',
-    publisher: 'Zambia Revenue Authority',
-    credibility: 95,
-    active: true,
-    websiteUrl: 'https://www.zra.org.zm/',
-    feedUrl: 'https://www.zra.org.zm/wp-json/wp/v2/posts',
-    feedType: 'API',
-    tags: [
-      'zra',
-      'tax',
-      'customs',
-      'trade',
-      'imports',
-      'exports',
-      'compliance',
-      'zambia',
-      'regulation',
-    ],
-    domains: [
-      'Regulation',
-      'Trade',
-      'Zambia',
-      'Business',
-    ],
-  },
-];
-
-/**
- * =========================================================
  * REGISTRY HELPERS
+ *
+ * Every helper accepts an optional registry for tests and
+ * callers that already loaded one. Without one, the
+ * user-owned registry file is loaded.
  * =========================================================
  */
 
-export function getRegisteredSources(): RegisteredIntelligenceSource[] {
-  return intelligenceSourceRegistry.filter((source) => source.active);
+export function getRegisteredSources(
+  registry: KaydaRegistry = loadRegistry().registry,
+): RegisteredIntelligenceSource[] {
+  return registry.sources.filter((source) => source.active);
 }
 
 export function getRegisteredSourceById(
   sourceId: string,
+  registry: KaydaRegistry = loadRegistry().registry,
 ): RegisteredIntelligenceSource | undefined {
-  return intelligenceSourceRegistry.find(
+  return registry.sources.find(
     (source) => source.id === sourceId,
   );
 }
 
 export function searchRegisteredSources(
   query: string,
+  registry: KaydaRegistry = loadRegistry().registry,
 ): RegisteredIntelligenceSource[] {
   const normalizedQuery = query.trim().toLowerCase();
 
   if (!normalizedQuery) {
-    return getRegisteredSources();
+    return getRegisteredSources(registry);
   }
 
-  return getRegisteredSources().filter((source) => {
+  return getRegisteredSources(registry).filter((source) => {
     const searchableText = [
       source.id,
       source.name,
@@ -209,7 +118,7 @@ export function searchRegisteredSources(
 }
 
 /**
- * Convert the new registry format into the existing
+ * Convert a registry source into the legacy
  * IntelligenceSource structure.
  */
 export function registeredSourceToIntelligenceSource(
@@ -228,11 +137,8 @@ export function registeredSourceToIntelligenceSource(
 }
 
 /**
- * Convert the registry source into the existing
+ * Convert a registry source into the legacy
  * IntelligenceFeed structure.
- *
- * This keeps the current ingestion engine backward
- * compatible while we progressively upgrade the system.
  */
 export function registeredSourceToFeed(
   source: RegisteredIntelligenceSource,
@@ -253,9 +159,13 @@ export function registeredSourceToFeed(
 }
 
 /**
- * Return the current feed representation expected by
- * the existing live ingestion layer.
+ * Return the feed representation expected by the live
+ * ingestion layer.
  */
-export function getRegisteredIntelligenceFeeds(): IntelligenceFeed[] {
-  return getRegisteredSources().map(registeredSourceToFeed);
+export function getRegisteredIntelligenceFeeds(
+  registry: KaydaRegistry = loadRegistry().registry,
+): IntelligenceFeed[] {
+  return getRegisteredSources(registry).map(
+    registeredSourceToFeed,
+  );
 }

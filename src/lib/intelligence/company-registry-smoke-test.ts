@@ -1,10 +1,3 @@
-/**
- * =========================================================
- * KAYDA INTELLIGENCE V1.5
- * STEP 5B.3 — COMPANY REGISTRY SMOKE TEST
- * =========================================================
- */
-
 import {
   getCompaniesByDomain,
   getCompaniesByRole,
@@ -16,223 +9,154 @@ import {
   getRegisteredCompanyById,
   searchRegisteredCompanies,
 } from './company-registry';
+import { EMPTY_REGISTRY } from './registry-store';
+import { fixtureRegistry } from '@/test/fixtures/registry-fixtures';
 
-console.log('==================================================');
-console.log(' KAYDA INTELLIGENCE V1.5 — COMPANY REGISTRY TEST');
-console.log('==================================================');
-console.log('');
-
-const companies = getRegisteredCompanies();
-
-console.log(`REGISTERED COMPANIES: ${companies.length}`);
-console.log('');
-
-for (const company of companies) {
-  console.log(`COMPANY: ${company.name}`);
-  console.log(`ID: ${company.id}`);
-  console.log(`INDUSTRY: ${company.industry}`);
-  console.log(`COUNTRY: ${company.country}`);
-  console.log(`STATUS: ${company.status}`);
-  console.log(`IMPORTANCE: ${company.importance}`);
-  console.log(`ROLES: ${company.roles.join(', ')}`);
-  console.log(`WEBSITE: ${company.websiteUrl}`);
-  console.log('--------------------------------------------------');
+function assert(condition: boolean, message: string): void {
+  if (!condition) {
+    throw new Error(`ASSERTION FAILED: ${message}`);
+  }
 }
 
 console.log('');
-console.log('=== COMPANY LOOKUP TEST ===');
+console.log('==================================================');
+console.log(' COMPANY REGISTRY TEST (isolated fixture)');
+console.log('==================================================');
+console.log('');
 
-const zra = getRegisteredCompanyById(
-  'company-zambia-revenue-authority',
+// ---------------------------------------------------------
+// 1. Empty registry is an honest empty state
+// ---------------------------------------------------------
+assert(
+  getRegisteredCompanies(EMPTY_REGISTRY).length === 0,
+  'empty registry must yield zero companies',
+);
+assert(
+  getMonitoredCompanies(EMPTY_REGISTRY).length === 0,
+  'empty registry must yield zero monitored companies',
+);
+console.log('EMPTY REGISTRY STATUS: honest empty state');
+
+// ---------------------------------------------------------
+// 2. Companies from fixture (archived excluded)
+// ---------------------------------------------------------
+const companies = getRegisteredCompanies(fixtureRegistry);
+console.log(`REGISTERED COMPANIES: ${companies.length}`);
+assert(companies.length === 2, 'expected 2 non-archived companies');
+assert(
+  companies.every(
+    (company) => company.status !== 'Archived',
+  ),
+  'archived companies must be excluded',
 );
 
-if (!zra) {
-  throw new Error('Company lookup failed for ZRA');
-}
-
-console.log(`LOOKUP: ${zra.name}`);
+// ---------------------------------------------------------
+// 3. Lookup
+// ---------------------------------------------------------
+const authority = getRegisteredCompanyById(
+  'company-fixture-authority',
+  fixtureRegistry,
+);
+assert(Boolean(authority), 'fixture authority lookup failed');
 console.log('LOOKUP STATUS: success');
 
-console.log('');
-console.log('=== COMPANY SEARCH TEST ===');
-
-const sugarSearch = searchRegisteredCompanies('sugar');
-
-console.log(
-  `SEARCH: sugar`,
+// ---------------------------------------------------------
+// 4. Search
+// ---------------------------------------------------------
+const manufacturingSearch = searchRegisteredCompanies(
+  'manufacturing',
+  fixtureRegistry,
 );
-
-console.log(
-  `MATCHES: ${sugarSearch.map((company) => company.name).join(', ')}`,
+assert(
+  manufacturingSearch.length > 0,
+  'company search returned no matches',
 );
-
-if (
-  !sugarSearch.some(
-    (company) => company.id === 'company-zambia-sugar',
-  )
-) {
-  throw new Error('Company search failed for Zambia Sugar');
-}
-
 console.log('SEARCH STATUS: success');
 
-console.log('');
-console.log('=== INTELLIGENCE PROFILE TEST ===');
-
-const sugarProfile = getCompanyIntelligenceProfile(
-  'company-zambia-sugar',
+// ---------------------------------------------------------
+// 5. Intelligence profile
+// ---------------------------------------------------------
+const manufacturerProfile = getCompanyIntelligenceProfile(
+  'company-fixture-manufacturer',
+  fixtureRegistry,
 );
-
-if (!sugarProfile) {
-  throw new Error(
-    'Intelligence profile lookup failed for Zambia Sugar',
-  );
-}
-
-console.log(
-  `PROFILE COMPANY: ${sugarProfile.companyId}`,
+assert(
+  Boolean(manufacturerProfile),
+  'intelligence profile lookup failed',
 );
-
-console.log(
-  `MONITORING ENABLED: ${sugarProfile.monitoringEnabled}`,
+assert(
+  manufacturerProfile?.monitoringEnabled === true,
+  'fixture manufacturer monitoring should be enabled',
 );
-
-console.log(
-  `RELEVANCE SCORE: ${sugarProfile.relevanceScore}`,
-);
-
-console.log(
-  `DOMAINS: ${sugarProfile.domains.join(', ')}`,
-);
-
-console.log(
-  `KEYWORDS: ${sugarProfile.keywords.length}`,
-);
-
-console.log(
-  `COMMODITIES: ${sugarProfile.commodities.join(', ')}`,
-);
-
 console.log('PROFILE STATUS: success');
 
-console.log('');
-console.log('=== COMPANY → SOURCE TEST ===');
-
-const sugarSources = getCompanySourceRelationships(
-  'company-zambia-sugar',
+// ---------------------------------------------------------
+// 6. Company -> Source
+// ---------------------------------------------------------
+const manufacturerSources = getCompanySourceRelationships(
+  'company-fixture-manufacturer',
+  fixtureRegistry,
 );
-
-console.log(
-  `ZAMBIA SUGAR SOURCE COUNT: ${sugarSources.length}`,
+assert(
+  manufacturerSources.length >= 2,
+  'expected the manufacturer to have at least 2 sources',
 );
+console.log('COMPANY -> SOURCE STATUS: success');
 
-for (const relationship of sugarSources) {
-  console.log(
-    `${relationship.companyId} -> ${relationship.sourceId}`,
-  );
-}
-
-if (sugarSources.length < 2) {
-  throw new Error(
-    'Expected Zambia Sugar to have at least 2 intelligence sources',
-  );
-}
-
-console.log('COMPANY → SOURCE STATUS: success');
-
-console.log('');
-console.log('=== SOURCE → COMPANY TEST ===');
-
-const zraCompanies = getCompaniesForSource(
-  'source-zambian-regulatory',
+// ---------------------------------------------------------
+// 7. Source -> Company
+// ---------------------------------------------------------
+const regulatorCompanies = getCompaniesForSource(
+  'source-fixture-regulator',
+  fixtureRegistry,
 );
-
-console.log(
-  `ZRA SOURCE COMPANY COUNT: ${zraCompanies.length}`,
+assert(
+  regulatorCompanies.length >= 2,
+  'expected the regulator source to inform multiple companies',
 );
+console.log('SOURCE -> COMPANY STATUS: success');
 
-console.log(
-  `COMPANIES: ${zraCompanies.map((company) => company.name).join(', ')}`,
+// ---------------------------------------------------------
+// 8. Domain filter
+// ---------------------------------------------------------
+const tradeCompanies = getCompaniesByDomain(
+  'Trade',
+  fixtureRegistry,
 );
-
-if (zraCompanies.length < 2) {
-  throw new Error(
-    'Expected ZRA regulatory source to serve multiple companies',
-  );
-}
-
-console.log('SOURCE → COMPANY STATUS: success');
-
-console.log('');
-console.log('=== DOMAIN FILTER TEST ===');
-
-const tradeCompanies = getCompaniesByDomain('Trade');
-
-console.log(
-  `DOMAIN: Trade`,
+assert(
+  tradeCompanies.length > 0,
+  'domain filtering failed for Trade',
 );
-
-console.log(
-  `MATCHES: ${tradeCompanies.map((company) => company.name).join(', ')}`,
-);
-
-if (tradeCompanies.length === 0) {
-  throw new Error(
-    'Domain filtering failed for Trade',
-  );
-}
-
 console.log('DOMAIN FILTER STATUS: success');
 
-console.log('');
-console.log('=== ROLE FILTER TEST ===');
-
-const suppliers = getCompaniesByRole('Supplier');
-
-console.log(
-  `ROLE: Supplier`,
+// ---------------------------------------------------------
+// 9. Role filter
+// ---------------------------------------------------------
+const suppliers = getCompaniesByRole(
+  'Supplier',
+  fixtureRegistry,
 );
-
-console.log(
-  `MATCHES: ${suppliers.map((company) => company.name).join(', ')}`,
+assert(
+  suppliers.some(
+    (company) =>
+      company.id === 'company-fixture-manufacturer',
+  ),
+  'role filtering failed for Supplier',
 );
-
-if (
-  !suppliers.some(
-    (company) => company.id === 'company-zambia-sugar',
-  )
-) {
-  throw new Error(
-    'Role filtering failed for Supplier',
-  );
-}
-
 console.log('ROLE FILTER STATUS: success');
 
-console.log('');
-console.log('=== MONITORED COMPANY TEST ===');
-
-const monitoredCompanies = getMonitoredCompanies();
-
-console.log(
-  `MONITORED COMPANIES: ${monitoredCompanies.length}`,
+// ---------------------------------------------------------
+// 10. Monitored companies
+// ---------------------------------------------------------
+const monitored = getMonitoredCompanies(fixtureRegistry);
+assert(
+  monitored.length === 2,
+  'expected exactly 2 monitored fixture companies',
 );
-
-console.log(
-  `COMPANIES: ${monitoredCompanies
-    .map((company) => company.name)
-    .join(', ')}`,
-);
-
-if (monitoredCompanies.length === 0) {
-  throw new Error(
-    'No monitored companies returned',
-  );
-}
-
 console.log('MONITORING STATUS: success');
 
 console.log('');
 console.log('==================================================');
 console.log(' COMPANY REGISTRY TEST PASSED');
 console.log('==================================================');
+console.log('');

@@ -1,4 +1,5 @@
-import { intelligenceFeeds } from './feeds';
+import { getActiveIntelligenceFeeds } from './feeds';
+import type { IntelligenceFeed } from '@/types/intelligence';
 import {
   ingestFromSource,
   type AdapterArticle,
@@ -31,8 +32,9 @@ function hash(value: string): string {
 function normalize(
   item: AdapterArticle,
   ingestionMethod: string,
+  feeds: IntelligenceFeed[],
 ): NormalizedLiveArticle {
-  const source = intelligenceFeeds.find(
+  const source = feeds.find(
     (feed) => feed.id === item.sourceId,
   );
 
@@ -63,9 +65,7 @@ export async function ingestLiveIntelligence(): Promise<{
   failedFeeds: number;
   feedErrors: string[];
 }> {
-  const activeFeeds = intelligenceFeeds.filter(
-    (feed) => feed.active && feed.status === 'Active',
-  );
+  const activeFeeds = getActiveIntelligenceFeeds();
 
   const results = await Promise.all(
     activeFeeds.map(async (feed) => ({
@@ -99,7 +99,7 @@ export async function ingestLiveIntelligence(): Promise<{
 
     articles.push(
       ...result.articles.map((article) =>
-        normalize(article, result.method),
+        normalize(article, result.method, activeFeeds),
       ),
     );
   }

@@ -176,12 +176,10 @@ export type IntelligenceDomain =
   | 'Banking'
   | 'Trade'
   | 'Commodities'
-  | 'Sugar'
   | 'Real Estate'
   | 'Technology'
   | 'AI'
   | 'Regulation'
-  | 'Zambia'
   | 'Africa'
   | 'Global'
   | 'Business'
@@ -213,6 +211,13 @@ export interface IntelligenceClassification {
   whyItMatters: string;
   recommendedAction: string;
   matchedSignals: string[];
+
+  /**
+   * Geographic terms detected in the article (country or
+   * region names). Context only: geography is never the
+   * primary classification.
+   */
+  geographyContext?: string[];
 }
 
 export interface ScoredIntelligenceArticle {

@@ -1,6 +1,7 @@
 import {
   getCompanyIntelligenceProfile,
   getCompanySourceRelationships,
+  getRegisteredCompanies,
   getRegisteredCompanyById,
 } from './company-registry';
 import type {
@@ -8,6 +9,7 @@ import type {
   CompanySourceRelationship,
   IntelligenceCompany,
 } from '../../types/company-intelligence';
+import type { KaydaRegistry } from './registry-store';
 
 export interface CompanyIntelligenceContext {
   company: IntelligenceCompany;
@@ -18,40 +20,58 @@ export interface CompanyIntelligenceContext {
 
 export function getCompanyIntelligenceContext(
   companyId: string,
+  registry?: KaydaRegistry,
 ): CompanyIntelligenceContext | undefined {
-  const company = getRegisteredCompanyById(companyId);
-  const profile = getCompanyIntelligenceProfile(companyId);
+  const company = getRegisteredCompanyById(
+    companyId,
+    registry,
+  );
+  const profile = getCompanyIntelligenceProfile(
+    companyId,
+    registry,
+  );
 
   if (!company || !profile) {
     return undefined;
   }
 
-  const relationships = getCompanySourceRelationships(companyId);
+  const relationships = getCompanySourceRelationships(
+    companyId,
+    registry,
+  );
 
   return {
     company,
     profile,
     relationships,
     sourceIds: relationships
-      .filter((relationship: CompanySourceRelationship) => relationship.active)
-      .map((relationship: CompanySourceRelationship) => relationship.sourceId),
+      .filter(
+        (relationship: CompanySourceRelationship) =>
+          relationship.active,
+      )
+      .map(
+        (relationship: CompanySourceRelationship) =>
+          relationship.sourceId,
+      ),
   };
 }
 
 export function getCompanyContextForSource(
   sourceId: string,
+  registry?: KaydaRegistry,
 ): CompanyIntelligenceContext[] {
-  const companyIds = [
-    'company-zambia-sugar',
-    'company-zambia-revenue-authority',
-  ];
-
   const contexts: CompanyIntelligenceContext[] = [];
 
-  for (const companyId of companyIds) {
-    const context = getCompanyIntelligenceContext(companyId);
+  for (const company of getRegisteredCompanies(registry)) {
+    const context = getCompanyIntelligenceContext(
+      company.id,
+      registry,
+    );
 
-    if (context && context.sourceIds.includes(sourceId)) {
+    if (
+      context &&
+      context.sourceIds.includes(sourceId)
+    ) {
       contexts.push(context);
     }
   }

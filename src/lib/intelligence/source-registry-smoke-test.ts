@@ -4,83 +4,86 @@ import {
   getRegisteredIntelligenceFeeds,
   searchRegisteredSources,
 } from './source-registry';
+import { EMPTY_REGISTRY } from './registry-store';
+import { fixtureRegistry } from '@/test/fixtures/registry-fixtures';
 
-console.log('');
-console.log('==================================================');
-console.log(' KAYDA INTELLIGENCE V1.5 — SOURCE REGISTRY TEST');
-console.log('==================================================');
-console.log('');
-
-const sources = getRegisteredSources();
-
-console.log('ACTIVE SOURCES:', sources.length);
-console.log('');
-
-for (const source of sources) {
-  console.log(`SOURCE: ${source.name}`);
-  console.log(`ID: ${source.id}`);
-  console.log(`TYPE: ${source.sourceType}`);
-  console.log(`PUBLISHER: ${source.publisher}`);
-  console.log(`CREDIBILITY: ${source.credibility}`);
-  console.log(`WEBSITE: ${source.websiteUrl}`);
-  console.log(`METHOD: ${source.feedType}`);
-  console.log(`TAGS: ${source.tags.join(', ')}`);
-  console.log(`DOMAINS: ${source.domains.join(', ')}`);
-  console.log('--------------------------------------------------');
+function assert(condition: boolean, message: string): void {
+  if (!condition) {
+    throw new Error(`ASSERTION FAILED: ${message}`);
+  }
 }
 
 console.log('');
-console.log('=== SOURCE LOOKUP TEST ===');
+console.log('==================================================');
+console.log(' SOURCE REGISTRY TEST (isolated fixture)');
+console.log('==================================================');
+console.log('');
 
-const zra = getRegisteredSourceById(
-  'source-zambian-regulatory',
+// ---------------------------------------------------------
+// 1. Empty registry is an honest empty state
+// ---------------------------------------------------------
+const emptySources = getRegisteredSources(EMPTY_REGISTRY);
+assert(
+  emptySources.length === 0,
+  'empty registry must yield zero sources',
+);
+assert(
+  getRegisteredIntelligenceFeeds(EMPTY_REGISTRY).length === 0,
+  'empty registry must yield zero feeds',
+);
+console.log('EMPTY REGISTRY STATUS: honest empty state');
+
+// ---------------------------------------------------------
+// 2. Active sources from fixture
+// ---------------------------------------------------------
+const sources = getRegisteredSources(fixtureRegistry);
+console.log(`ACTIVE SOURCES: ${sources.length}`);
+assert(sources.length === 2, 'expected exactly 2 active sources');
+assert(
+  sources.every((source) => source.active),
+  'inactive sources must be excluded',
 );
 
-if (!zra) {
-  console.error('ERROR: ZRA source lookup failed.');
-  process.exit(1);
-}
-
-console.log('ZRA LOOKUP:', zra.name);
+// ---------------------------------------------------------
+// 3. Lookup
+// ---------------------------------------------------------
+const regulator = getRegisteredSourceById(
+  'source-fixture-regulator',
+  fixtureRegistry,
+);
+assert(Boolean(regulator), 'fixture regulator lookup failed');
+assert(
+  regulator?.publisher === 'Fixture Authority',
+  'lookup returned the wrong source',
+);
 console.log('LOOKUP STATUS: success');
 
-console.log('');
-console.log('=== SOURCE SEARCH TEST ===');
-
-const sugarResults = searchRegisteredSources('sugar');
-
-console.log('SEARCH: sugar');
-console.log(
-  'MATCHES:',
-  sugarResults.map((source) => source.name).join(', '),
+// ---------------------------------------------------------
+// 4. Search
+// ---------------------------------------------------------
+const regulationResults = searchRegisteredSources(
+  'regulation',
+  fixtureRegistry,
 );
-
-if (sugarResults.length === 0) {
-  console.error('ERROR: Sugar source search failed.');
-  process.exit(1);
-}
-
+assert(
+  regulationResults.length > 0,
+  'source search returned no matches',
+);
 console.log('SEARCH STATUS: success');
 
-console.log('');
-console.log('=== FEED COMPATIBILITY TEST ===');
-
-const feeds = getRegisteredIntelligenceFeeds();
-
-console.log('REGISTERED FEEDS:', feeds.length);
-
-if (feeds.length !== sources.length) {
-  console.error(
-    'ERROR: Feed/source registry count mismatch.',
-  );
-  process.exit(1);
-}
-
-for (const feed of feeds) {
-  console.log(
-    `${feed.name} -> ${feed.feedType} -> ${feed.status}`,
-  );
-}
+// ---------------------------------------------------------
+// 5. Feed compatibility
+// ---------------------------------------------------------
+const feeds = getRegisteredIntelligenceFeeds(fixtureRegistry);
+assert(
+  feeds.length === sources.length,
+  'feed/source registry count mismatch',
+);
+assert(
+  feeds.every((feed) => feed.status === 'Active'),
+  'derived feeds must be Active',
+);
+console.log('FEED COMPATIBILITY STATUS: success');
 
 console.log('');
 console.log('==================================================');

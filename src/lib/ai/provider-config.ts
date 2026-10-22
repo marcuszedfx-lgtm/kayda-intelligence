@@ -28,6 +28,12 @@ export const AI_PROVIDER_CONFIGS: readonly AIProviderConfig[] = [
     name: 'Google Gemini',
     apiKeyEnv: 'GEMINI_API_KEY',
     modelEnv: 'GEMINI_MODEL',
+    // Gemini exposes an OpenAI-compatible surface at this path.
+    defaultBaseUrl: [
+      'https://',
+      'generativelanguage.googleapis.com',
+      '/v1beta/openai',
+    ].join(''),
     capabilities: [
       'structured_extraction',
       'reasoning',

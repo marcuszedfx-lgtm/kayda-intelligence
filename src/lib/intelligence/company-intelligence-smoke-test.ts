@@ -8,6 +8,8 @@ import {
   evaluateCompanyRelevance,
   evaluateAllRegisteredCompanies,
 } from './company-relevance';
+import { EMPTY_REGISTRY } from './registry-store';
+import { fixtureRegistry } from '@/test/fixtures/registry-fixtures';
 
 function assert(condition: boolean, message: string): void {
   if (!condition) {
@@ -15,81 +17,108 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
+console.log('');
 console.log('==================================================');
-console.log(' KAYDA INTELLIGENCE V1.5');
-console.log(' STEP 5B.4 — COMPANY-AWARE INTELLIGENCE TEST');
+console.log(' COMPANY-INTELLIGENCE TEST (isolated fixture)');
 console.log('==================================================');
 console.log('');
 
-console.log('=== COMPANY CONTEXT TEST ===');
+// ---------------------------------------------------------
+// 1. Empty registry: no contexts, no matches, no crash
+// ---------------------------------------------------------
+assert(
+  getCompanyIntelligenceContext(
+    'company-fixture-authority',
+    EMPTY_REGISTRY,
+  ) === undefined,
+  'empty registry must return no context',
+);
+assert(
+  evaluateAllRegisteredCompanies(
+    {
+      sourceId: 'source-fixture-regulator',
+      title: 'Any headline',
+      summary: 'Any summary',
+    },
+    EMPTY_REGISTRY,
+  ).length === 0,
+  'empty registry must yield no company matches',
+);
+console.log('EMPTY REGISTRY STATUS: honest empty state');
 
-const sugarContext = getCompanyIntelligenceContext(
-  'company-zambia-sugar',
+// ---------------------------------------------------------
+// 2. Company context
+// ---------------------------------------------------------
+const manufacturerContext = getCompanyIntelligenceContext(
+  'company-fixture-manufacturer',
+  fixtureRegistry,
+);
+assert(
+  Boolean(manufacturerContext),
+  'fixture manufacturer context missing',
 );
 
-assert(Boolean(sugarContext), 'Zambia Sugar context missing');
-
-if (sugarContext) {
-  console.log(`COMPANY: ${sugarContext.company.name}`);
-  console.log(`SOURCE COUNT: ${sugarContext.sourceIds.length}`);
-  console.log(`RELEVANCE: ${sugarContext.profile.relevanceScore}`);
-  console.log(`RISK: ${sugarContext.profile.riskLevel}`);
+if (manufacturerContext) {
   console.log(
-    `KEYWORDS: ${getCompanyProfileKeywords(sugarContext.profile).length}`,
+    `COMPANY: ${manufacturerContext.company.name}`,
   );
   console.log(
-    `DOMAINS: ${getCompanyProfileDomains(sugarContext.profile).length}`,
+    `SOURCE COUNT: ${manufacturerContext.sourceIds.length}`,
+  );
+  console.log(
+    `RELEVANCE: ${manufacturerContext.profile.relevanceScore}`,
+  );
+  console.log(
+    `RISK: ${manufacturerContext.profile.riskLevel}`,
+  );
+  console.log(
+    `KEYWORDS: ${getCompanyProfileKeywords(manufacturerContext.profile).length}`,
+  );
+  console.log(
+    `DOMAINS: ${getCompanyProfileDomains(manufacturerContext.profile).length}`,
   );
 
   assert(
-    sugarContext.sourceIds.length >= 2,
-    'Zambia Sugar should have at least two sources',
+    manufacturerContext.sourceIds.length >= 2,
+    'manufacturer should have at least two sources',
   );
-
   assert(
-    sugarContext.profile.monitoringEnabled,
-    'Zambia Sugar monitoring should be enabled',
+    manufacturerContext.profile.monitoringEnabled,
+    'manufacturer monitoring should be enabled',
   );
 }
-
 console.log('COMPANY CONTEXT STATUS: success');
-console.log('');
 
-console.log('=== SOURCE CONTEXT TEST ===');
-
-const zraSourceContexts = getCompanyContextForSource(
-  'source-zambian-regulatory',
+// ---------------------------------------------------------
+// 3. Source context (many companies per source)
+// ---------------------------------------------------------
+const regulatorContexts = getCompanyContextForSource(
+  'source-fixture-regulator',
+  fixtureRegistry,
 );
-
 console.log(
-  `ZRA SOURCE COMPANY COUNT: ${zraSourceContexts.length}`,
+  `REGULATOR SOURCE COMPANY COUNT: ${regulatorContexts.length}`,
 );
-
-console.log(
-  `COMPANIES: ${zraSourceContexts
-    .map((context) => context.company.name)
-    .join(', ')}`,
-);
-
 assert(
-  zraSourceContexts.length >= 2,
-  'ZRA source should be linked to at least two companies',
+  regulatorContexts.length >= 2,
+  'regulator source should be linked to at least two companies',
 );
-
 console.log('SOURCE CONTEXT STATUS: success');
-console.log('');
 
-console.log('=== COMPANY RELEVANCE TEST ===');
-
-const relevance = evaluateCompanyRelevance({
-  companyId: 'company-zambia-sugar',
-  sourceId: 'source-zambia-sugar',
-  title: 'Zambia Sugar announces new sugar production initiative',
-  summary:
-    'The company is expanding sugar production and improving agricultural efficiency in Zambia.',
-});
-
-console.log(`COMPANY: ${relevance.companyName}`);
+// ---------------------------------------------------------
+// 4. Company relevance
+// ---------------------------------------------------------
+const relevance = evaluateCompanyRelevance(
+  {
+    companyId: 'company-fixture-manufacturer',
+    sourceId: 'source-fixture-wire',
+    title:
+      'Fixture Manufacturing reports higher widget production output',
+    summary:
+      'The manufacturer is expanding assembly output and improving component logistics.',
+  },
+  fixtureRegistry,
+);
 console.log(`MATCHED: ${relevance.matched}`);
 console.log(`SCORE: ${relevance.score}`);
 console.log(`CONFIDENCE: ${relevance.confidence}`);
@@ -99,74 +128,77 @@ console.log(
 console.log(
   `DOMAIN MATCHES: ${relevance.matchedDomains.join(', ') || 'none'}`,
 );
-console.log(`REASON: ${relevance.reason}`);
-
-assert(relevance.matched, 'Relevant Zambia Sugar article was not matched');
-assert(relevance.score > 0, 'Relevance score should be greater than zero');
-
+assert(relevance.matched, 'relevant fixture article was not matched');
+assert(relevance.score > 0, 'relevance score should exceed zero');
 console.log('COMPANY RELEVANCE STATUS: success');
-console.log('');
 
-console.log('=== REGULATORY RELEVANCE TEST ===');
-
-const regulatoryRelevance = evaluateCompanyRelevance({
-  companyId: 'company-zambia-revenue-authority',
-  sourceId: 'source-zambian-regulatory',
-  title: 'ZRA announces new customs and import clearance requirements',
-  summary:
-    'The change affects customs, imports, exports, duty and compliance.',
-});
-
-console.log(`COMPANY: ${regulatoryRelevance.companyName}`);
-console.log(`MATCHED: ${regulatoryRelevance.matched}`);
-console.log(`SCORE: ${regulatoryRelevance.score}`);
-console.log(
-  `KEYWORD MATCHES: ${
-    regulatoryRelevance.matchedKeywords.join(', ') || 'none'
-  }`,
+// ---------------------------------------------------------
+// 5. Regulatory relevance
+// ---------------------------------------------------------
+const regulatoryRelevance = evaluateCompanyRelevance(
+  {
+    companyId: 'company-fixture-authority',
+    sourceId: 'source-fixture-regulator',
+    title:
+      'Fixture Trade Authority announces new import licensing compliance rules',
+    summary:
+      'The change affects customs duty, import licensing and trade compliance.',
+  },
+  fixtureRegistry,
 );
-console.log(
-  `DOMAIN MATCHES: ${
-    regulatoryRelevance.matchedDomains.join(', ') || 'none'
-  }`,
-);
-
 assert(
   regulatoryRelevance.matched,
-  'Relevant ZRA regulatory article was not matched',
+  'relevant regulatory article was not matched',
 );
-
 assert(
   regulatoryRelevance.score > 0,
-  'ZRA relevance score should be greater than zero',
+  'regulatory relevance score should exceed zero',
+);
+console.log('REGULATORY RELEVANCE STATUS: success');
+
+// ---------------------------------------------------------
+// 6. Source not linked to company
+// ---------------------------------------------------------
+const unlinked = evaluateCompanyRelevance(
+  {
+    companyId: 'company-fixture-manufacturer',
+    sourceId: 'source-fixture-regulator',
+    title: 'Fixture Manufacturing widget output rises',
+    summary: 'Assembly output increased.',
+  },
+  fixtureRegistry,
+);
+assert(
+  unlinked.matched,
+  'linked regulator source should still evaluate for the manufacturer',
 );
 
-console.log('REGULATORY RELEVANCE STATUS: success');
-console.log('');
-
-console.log('=== CROSS-COMPANY EVALUATION TEST ===');
-
-const results = evaluateAllRegisteredCompanies({
-  sourceId: 'source-zambian-regulatory',
-  title: 'ZRA customs changes may affect sugar imports and exports',
-  summary:
-    'New customs, tax and trade compliance requirements have been announced in Zambia.',
-});
-
+// ---------------------------------------------------------
+// 7. Cross-company evaluation
+// ---------------------------------------------------------
+const crossCompany = evaluateAllRegisteredCompanies(
+  {
+    sourceId: 'source-fixture-regulator',
+    title:
+      'Fixture Trade Authority updates customs duty and import licensing rules',
+    summary:
+      'Compliance requirements for trade have been updated in Exampleland.',
+  },
+  fixtureRegistry,
+);
 console.log(
-  `MATCHED COMPANIES: ${results
+  `MATCHED COMPANIES: ${crossCompany
     .map((result) => result.companyName)
     .join(', ') || 'none'}`,
 );
-
 assert(
-  results.length >= 1,
-  'Expected at least one company to match regulatory intelligence',
+  crossCompany.length >= 1,
+  'expected at least one company to match the regulatory update',
 );
-
 console.log('CROSS-COMPANY STATUS: success');
-console.log('');
 
+console.log('');
 console.log('==================================================');
-console.log(' COMPANY-AWARE INTELLIGENCE TEST PASSED');
+console.log(' COMPANY-INTELLIGENCE TEST PASSED');
 console.log('==================================================');
+console.log('');

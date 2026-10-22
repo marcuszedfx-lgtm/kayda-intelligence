@@ -10,26 +10,23 @@ import {
  * KAYDA INTELLIGENCE — FEED COMPATIBILITY LAYER
  * =========================================================
  *
- * The application previously stored intelligence feeds
- * directly in this file.
+ * Thin adapters between the user-owned source registry
+ * (data/kayda-registry.json) and the live ingestion layer,
+ * which still expects the legacy IntelligenceFeed shape.
  *
- * Step 5A moves the actual source definitions into the
- * Source Registry.
- *
- * This compatibility layer remains so the existing
- * ingestion engine continues to work without requiring a
- * dangerous rewrite of the working live adapter system.
- *
- * Future steps will replace this compatibility layer with
- * database-backed source/company relationships.
+ * The registry is read on every call so configuration
+ * changes take effect without a restart. With an empty
+ * registry these return empty lists — an honest state, not
+ * an error.
  * =========================================================
  */
 
-export const intelligenceFeeds: IntelligenceFeed[] =
-  getRegisteredIntelligenceFeeds();
+export function getIntelligenceFeeds(): IntelligenceFeed[] {
+  return getRegisteredIntelligenceFeeds();
+}
 
 export function getActiveIntelligenceFeeds(): IntelligenceFeed[] {
-  return intelligenceFeeds.filter(
+  return getIntelligenceFeeds().filter(
     (feed) => feed.active && feed.status === 'Active',
   );
 }

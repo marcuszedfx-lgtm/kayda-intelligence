@@ -1,6 +1,8 @@
 import {
   getCompanyIntelligenceContext,
 } from './company-intelligence-context';
+import { getRegisteredCompanies } from './company-registry';
+import type { KaydaRegistry } from './registry-store';
 
 export interface CompanyRelevanceInput {
   companyId: string;
@@ -42,8 +44,12 @@ function countKeywordMatches(
 
 export function evaluateCompanyRelevance(
   input: CompanyRelevanceInput,
+  registry?: KaydaRegistry,
 ): CompanyRelevanceResult {
-  const context = getCompanyIntelligenceContext(input.companyId);
+  const context = getCompanyIntelligenceContext(
+    input.companyId,
+    registry,
+  );
 
   if (!context) {
     return {
@@ -163,18 +169,17 @@ export function evaluateCompanyRelevance(
 
 export function evaluateAllRegisteredCompanies(
   input: Omit<CompanyRelevanceInput, 'companyId'>,
+  registry?: KaydaRegistry,
 ): CompanyRelevanceResult[] {
-  const companyIds = [
-    'company-zambia-sugar',
-    'company-zambia-revenue-authority',
-  ];
-
-  return companyIds
-    .map((companyId: string) =>
-      evaluateCompanyRelevance({
-        ...input,
-        companyId,
-      }),
+  return getRegisteredCompanies(registry)
+    .map((company) =>
+      evaluateCompanyRelevance(
+        {
+          ...input,
+          companyId: company.id,
+        },
+        registry,
+      ),
     )
     .filter((result: CompanyRelevanceResult) => result.matched)
     .sort((a, b) => b.score - a.score);

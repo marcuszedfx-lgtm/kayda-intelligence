@@ -8,6 +8,12 @@ import type {
   IntelligenceDomain,
 } from "@/types/intelligence";
 
+import {
+  LEARNING_DOMAINS,
+  MARKET_DOMAINS,
+  OPERATIONAL_DOMAINS,
+} from "./taxonomy";
+
 function clamp(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
@@ -154,28 +160,17 @@ export function buildOperationalDecision(
   const domains = getDomains(classification);
   const signalType = inferSignalType(classification);
 
-  const market = hasAnyDomain(domains, [
-    "FX",
-    "USDT",
-    "Banking",
-    "Trade",
-    "Commodities",
-    "Sugar",
-    "Real Estate",
-    "Global",
-  ])
+  const market = hasAnyDomain(
+    domains,
+    [...MARKET_DOMAINS],
+  )
     ? 75
     : 20;
 
-  const operational = hasAnyDomain(domains, [
-    "Payments",
-    "Banking",
-    "Trade",
-    "Commodities",
-    "Sugar",
-    "Real Estate",
-    "Regulation",
-  ])
+  const operational = hasAnyDomain(
+    domains,
+    [...OPERATIONAL_DOMAINS],
+  )
     ? 80
     : 20;
 
@@ -193,11 +188,10 @@ export function buildOperationalDecision(
       (signalType === "Opportunity" ? 35 : 0),
   );
 
-  const learning = hasAnyDomain(domains, [
-    "Technology",
-    "AI",
-    "Learning",
-  ])
+  const learning = hasAnyDomain(
+    domains,
+    [...LEARNING_DOMAINS],
+  )
     ? 75
     : 15;
 

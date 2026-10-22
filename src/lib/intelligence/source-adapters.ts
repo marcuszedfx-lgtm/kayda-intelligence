@@ -1,7 +1,19 @@
 import type { IntelligenceFeed } from '@/types/intelligence';
-import https from 'node:https';
-import fs from 'node:fs';
-import path from 'node:path';
+
+/**
+ * Generic outbound fetch settings. Certificate verification
+ * is always strict (system trust store only); there is no
+ * organisation-specific TLS path and no way to disable
+ * verification.
+ */
+const FETCH_TIMEOUT_MS = 15_000;
+
+const DEFAULT_HEADERS: Record<string, string> = {
+  'User-Agent':
+    'Kayda-Intelligence/1.5 (+https://kayda.group)',
+  Accept:
+    'application/rss+xml, application/atom+xml, application/xml, text/xml, application/json, text/html;q=0.9',
+};
 
 export interface AdapterArticle {
   title: string;
@@ -161,105 +173,18 @@ export interface SourceTransportResult {
   body: string;
 }
 
-async function fetchWithNativeHttps(
-  url: string,
-  caFile: string,
-): Promise<TextResponse> {
-  if (!fs.existsSync(caFile)) {
-    throw new Error(
-      `ZRA CA bundle not found: ${caFile}`,
-    );
-  }
-
-  const ca = fs.readFileSync(caFile);
-
-  return await new Promise<TextResponse>((resolve, reject) => {
-    const request = https.request(
-      url,
-      {
-        method: 'GET',
-        ca,
-        rejectUnauthorized: true,
-        headers: {
-          'User-Agent':
-            'Kayda-Intelligence/1.5 (+https://kayda.group)',
-          Accept:
-            'application/json, application/rss+xml, application/atom+xml, application/xml, text/xml, text/html;q=0.9',
-        },
-      },
-      (response) => {
-        const chunks: Buffer[] = [];
-
-        response.on('data', (chunk) => {
-          chunks.push(
-            Buffer.isBuffer(chunk)
-              ? chunk
-              : Buffer.from(chunk),
-          );
-        });
-
-        response.on('end', () => {
-          resolve({
-            response: {
-              status: response.statusCode ?? 0,
-              statusText:
-                response.statusMessage ?? '',
-              ok:
-                (response.statusCode ?? 0) >= 200 &&
-                (response.statusCode ?? 0) < 300,
-              contentType:
-                response.headers['content-type'] ??
-                '',
-            },
-            body: Buffer.concat(chunks).toString('utf8'),
-          });
-        });
-      },
-    );
-
-    request.setTimeout(15000, () => {
-      request.destroy(
-        new Error('ZRA request timed out after 15 seconds.'),
-      );
-    });
-
-    request.on('error', reject);
-
-    request.end();
-  });
-}
-
+/**
+ * Fetches a URL as text using the standard system trust
+ * store with strict certificate verification and an
+ * explicit timeout.
+ */
 async function fetchText(
   url: string,
 ): Promise<TextResponse> {
-  const isZra =
-    /(^|\.)zra\.org\.zm$/i.test(
-      new URL(url).hostname,
-    );
-
-  if (isZra) {
-    const caFile =
-      process.env.ZRA_CA_BUNDLE ||
-      path.join(
-        process.cwd(),
-        'certs',
-        'zra-sectigo-ca-bundle.pem',
-      );
-
-    return await fetchWithNativeHttps(
-      url,
-      caFile,
-    );
-  }
-
   const response = await fetch(url, {
-    headers: {
-      'User-Agent':
-        'Kayda-Intelligence/1.5 (+https://kayda.group)',
-      Accept:
-        'application/rss+xml, application/atom+xml, application/xml, text/xml, application/json, text/html;q=0.9',
-    },
+    headers: DEFAULT_HEADERS,
     cache: 'no-store',
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
 
   const body = await response.text();

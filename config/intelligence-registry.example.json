@@ -1,0 +1,67 @@
+{
+  "$comment": "TEMPLATE ONLY — never loaded by the application. Copy to data/kayda-registry.json and replace the placeholder entries with your own organisations and sources. data/kayda-registry.json is gitignored. An empty registry ({}) is a valid starting state: Kayda monitors nothing until you add entries. Adding a new company or source requires editing this file (or the future database-backed equivalent) — never a code change.",
+  "sources": [
+    {
+      "id": "source-example-news",
+      "name": "Example News Site",
+      "sourceType": "News",
+      "publisher": "Example Publisher",
+      "credibility": 50,
+      "active": true,
+      "websiteUrl": "https://news.example.com/",
+      "feedType": "RSS",
+      "tags": ["example"],
+      "domains": ["Business"]
+    },
+    {
+      "id": "source-example-regulator",
+      "name": "Example Regulator Bulletin",
+      "sourceType": "Regulator",
+      "publisher": "Example Authority",
+      "credibility": 80,
+      "active": true,
+      "websiteUrl": "https://regulator.example.gov/",
+      "feedUrl": "https://regulator.example.gov/api/posts",
+      "feedType": "API",
+      "tags": ["example", "regulation"],
+      "domains": ["Regulation"]
+    }
+  ],
+  "companies": [
+    {
+      "id": "company-example-supplier",
+      "name": "Example Supplier Ltd",
+      "shortName": "Example Supplier",
+      "description": "Placeholder company entry.",
+      "country": "Exampleland",
+      "city": "Example City",
+      "industry": "Manufacturing",
+      "sector": "Consumer Goods",
+      "status": "Monitoring",
+      "websiteUrl": "https://supplier.example.com/",
+      "importance": "High",
+      "roles": ["Supplier", "Market Participant"]
+    }
+  ],
+  "companyProfiles": [
+    {
+      "companyId": "company-example-supplier",
+      "monitoringEnabled": true,
+      "relevanceScore": 70,
+      "riskLevel": "Medium",
+      "domains": ["Manufacturing", "Trade"],
+      "keywords": ["example supplier", "widget production"],
+      "countries": ["Exampleland"],
+      "commodities": ["Widgets"]
+    }
+  ],
+  "companySourceRelationships": [
+    {
+      "id": "rel-example-supplier-news",
+      "companyId": "company-example-supplier",
+      "sourceId": "source-example-news",
+      "active": true,
+      "relevance": "General news coverage."
+    }
+  ]
+}
